@@ -1,0 +1,11 @@
+from scipy import optimize as _optimize # SciPy optimize
+from .optimizer import Optimizer as _Optimizer # Optimizer parent class
+
+class LocalOptimizer(_Optimizer):
+    def __init__(self,
+                 fcn = None,
+                 optimizer_arguments = {},
+                 pool = None
+                 ):
+        super().__init__(fcn = fcn, optimizer_arguments = optimizer_arguments, pool = pool)
+    def __call__(self, p0): return  _optimize.minimize(self._fcn, p0, **self._args)

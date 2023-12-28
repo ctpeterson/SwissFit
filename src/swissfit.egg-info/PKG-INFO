@@ -1,0 +1,14 @@
+Metadata-Version: 2.1
+Name: swissfit
+Version: 0.0.0
+Summary: SwissFit
+Home-page: UNKNOWN
+Author: Curtis Taylor Peterson
+Author-email: curtistaylorpetersonwork@gmail.com
+License: UNKNOWN
+Keywords: least squares
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+
+SwissFit: A cheesy multitool for complicated least squares fitting
+

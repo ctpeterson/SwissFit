@@ -1,0 +1,2 @@
+from skopt import gp_minimize as _gp_minimize
+from .empirical_bayes import EmpiricalBayes as _EmpiricalBayes # Empirical Bayes parent class

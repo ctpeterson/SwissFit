@@ -1,0 +1,4 @@
+######### Future plans #########
+
+- Port Hamiltonian Monte Carlo code to faster language (C++, Julia, Nim?)
+- Add in Riemann manifold Hamiltonian Monte Carlo (RMHMC)

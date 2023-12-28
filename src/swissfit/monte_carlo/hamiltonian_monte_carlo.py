@@ -1,0 +1,303 @@
+""" Imports """
+import numpy as _numpy # Number crunching & random numbers
+from functools import reduce as _reduce # Fast function composition
+from functools import partial as _partial # For partial evaluation of functions
+import sys as _sys # For extending limit of recursion depth
+from .montecarlo import MonteCarlo as _MonteCarlo # Base Monte Carlo object
+from ..numerical_tools import linalg as _linalg # SVD decomposition (and matrix inverses)
+from scipy.optimize import OptimizeResult as _OptimizeResult # For mocking SciPy OptimizeResult
+from tqdm import tqdm as _tqdm
+
+""" Hamiltonian Monte Carlo parameters, setup, & data structures """
+# Set new limit on recursion depth
+_recursion_limit = 1000000; _sys.setrecursionlimit(_recursion_limit);
+
+# Omelyan integrator parameters (arXiv:0505020)
+_OMELYAN_PARAMETERS = {
+    '2mn': { # 2nd-order scheme
+        'lambda': 0.1931833275037836
+    },
+    '4mn': { # 4th-order scheme
+        'rho': 0.1786178958448091,
+        'theta': -0.06626458266981843,
+        'lambda': 0.7123418310626056
+    }
+}
+
+# Momentum, position & covariance
+_momentum = _numpy.empty(shape = (1,))
+_position = _numpy.empty(shape = (1,))
+_covariance = _numpy.empty(shape = (1,1))
+_S, _V, _D = [_numpy.empty(shape = (1,1)) for comp in ['S', 'V', 'D']]
+
+""" Functions for constructing molecular dynamics update """
+
+# Elegant method for composing functions (mathieularose.com/function-composition-in-python)
+def _compose(*args): # f = f_{N}•...•f_{i+1}•f_{i}•...•f_1
+    return _reduce(lambda fip1, fi: lambda x: fip1(fi(x)), args, lambda x: x)
+
+# Update momentum
+def _update_momentum(position, gradient_calculation, eta):
+    global _momentum
+    _momentum -= eta * gradient_calculation(position)
+    return _momentum
+    
+# Momentum update constructor
+def _momentum_update_constructor(gradient_calculation):
+    return lambda eta: _partial(
+        _update_momentum,
+        gradient_calculation = gradient_calculation,
+        eta = eta
+    )
+
+# Update position
+def _update_position(momentum, eta):
+    global _position
+    _position += eta * momentum
+    return _position
+
+# Position update constructor
+def _position_update_constructor():
+    return lambda eta: _partial(_update_position, eta = eta)
+
+# Wrap integration step
+def _integration_step(x, integration_step):
+    integration_step(x)
+    return _position
+
+# Construct integrator out of position & momentum updates
+def _construct_integrator(integrator_type,
+                          gradient_calculation,
+                          tau, steps
+                          ):
+    # 1st-order integration parameter
+    dtau = tau / steps
+    
+    # 2nd-order integrator parameters
+    ldtau2mn = _OMELYAN_PARAMETERS['2mn']['lambda'] * dtau
+
+    # 4th-order integrator parameters
+    ldtau4mn = _OMELYAN_PARAMETERS['4mn']['lambda'] * dtau
+    rdtau = _OMELYAN_PARAMETERS['4mn']['rho'] * dtau
+    tdtau = _OMELYAN_PARAMETERS['4mn']['theta'] * dtau
+
+    # Momentum update constructor
+    update_momentum = _momentum_update_constructor(gradient_calculation)
+
+    # Position update constructor
+    update_position = _position_update_constructor()
+
+    # Compose single integration step
+    integration_step = _compose(
+        *{
+            '1mn': [
+                update_momentum(0.5 * dtau),
+                update_position(dtau),
+                update_momentum(0.5 * dtau)
+            ],
+            '2mn': [
+                update_momentum(ldtau2mn),
+                update_position(0.5 * dtau),
+                update_momentum(dtau - 2. * ldtau2mn),
+                update_position(0.5 * dtau),
+                update_momentum(ldtau2mn)
+            ],
+            '4mn': [
+                update_momentum(rdtau),
+                update_position(ldtau4mn),
+                update_momentum(tdtau),
+                update_position(0.5 * dtau - ldtau4mn),
+                update_momentum(dtau - 2. * rdtau - 2. * tdtau),
+                update_position(0.5 * dtau - ldtau4mn),
+                update_momentum(tdtau),
+                update_position(ldtau4mn),
+                update_momentum(rdtau)
+            ]
+        }[integrator_type]
+    )    
+
+    # Return full integrator
+    return _compose(*[
+        _partial(
+            _integration_step,
+            integration_step = integration_step
+        ) for step in range(steps)
+    ])
+    
+""" Main function for doing Hamiltonian Monte Carlo """
+
+# Runs Hamiltonian Monte Carlo
+def _hamiltonian_monte_carlo(fcn,
+                             x0,
+                             jac,
+                             integration_method = '1mn',
+                             samples = 1000,
+                             burn_in = 100,
+                             tau = 1.,
+                             steps = 20,
+                             callback = None,
+                             seed = 1234,
+                             no_metropolis_until = 0,
+                             disp_progress = False,
+                             trajectory_length_schedule = None,
+                             temperature_schedule = None
+                             ):
+    """ Prepare random number generator """
+    # Seed random number generator
+    rng = _numpy.random; rng.seed(seed = seed);
+    
+    """ Prepare position, momentum & covariance """
+    # Grab global variables
+    global _momentum, _position, _covariance, _S, _V, _D
+    
+    # Initialize position, momentum & covariance
+    _position, _position0, lowest_p = [*map(_numpy.copy, [x0, x0, x0])]
+    lowest_fcn = fcn(lowest_p)
+    _momentum = _numpy.zeros(len(x0))
+    _identity = _numpy.identity(len(x0))
+
+    # Initialize mean of momentum distribution
+    mean_momentum = _numpy.zeros(len(x0))
+
+    """ Prepare integrator & variables used in HMC """
+    # Construct integrator
+    if trajectory_length_schedule is None:
+        integrator = _construct_integrator(integration_method, jac, tau, steps)
+
+    # Initialize variables
+    hi, hf, u, acc, acc_count = 0., 0., 0., True, 0
+    position_samples = _numpy.zeros((samples, len(x0)))
+    
+    """ Hamiltonian Monte Carlo campling """
+    # Cycle through samples
+    _samples_list = list(range(burn_in + samples))
+    samples_list = _samples_list if not disp_progress else _tqdm(_samples_list)
+    for sample in samples_list:
+        # Set accept to True
+        acc = True
+        
+        # Save starting position
+        _position0 = _numpy.copy(_position)
+        
+        # Initialize momentum
+        _momentum = rng.multivariate_normal(mean_momentum, _identity)
+
+        # Calculate Hamiltonian
+        hi = 0.5 * _numpy.dot(_momentum, _momentum) + fcn(_position)
+
+        # Update trajectory length if requested
+        if trajectory_length_schedule is not None: integrator = _construct_integrator(
+                integration_method, jac,
+                trajectory_length_schedule(sample, tau), steps
+        )
+        
+        # Evolve coordinates with molecular dynamics
+        _position = integrator(_position)
+        
+        # Calculate evolved Hamiltonian
+        chi2 = fcn(_position); hf = 0.5 * _numpy.dot(_momentum, _momentum) + chi2;
+
+        # Check if new lowest function & save if so
+        if chi2 < lowest_fcn:
+            lowest_p, lowest_fcn = _numpy.copy(_position), chi2
+
+        # Metropolis accept/reject
+        if sample > no_metropolis_until:
+            u = rng.uniform(0., 1.)
+            T = 1. if temperature_schedule is None else temperature_schedule(sample)
+            if (u > _numpy.exp(-max(hf - hi, 0.) / T)) or _numpy.isnan(hf) or _numpy.isinf(hf):
+                if (_numpy.isnan(hf)) or (_numpy.isinf(hf)): print('Warning. "hf" is inf or nan.')
+                _position = _numpy.copy(_position0); acc = False;
+        elif (not _numpy.isnan(hf)) and (not _numpy.isinf(hf)): acc = True
+        else:
+            print('Warning. "hf" is inf or nan.')
+            _position = _numpy.copy(_position0); acc = False;
+            
+        # Save current position
+        if sample >= burn_in:
+            position_samples[sample - burn_in] = _position
+            if acc: acc_count += 1
+            
+        # Callback function
+        if callback: callback(acc, _position, hi, hf)
+        
+    # Return full list of samples
+    return position_samples, acc_count / samples, lowest_p, lowest_fcn
+    
+""" Hamiltonian Monte Carlo class """
+class HamiltonianMonteCarlo(_MonteCarlo):
+    def __init__(self,
+                 fcn = None,
+                 jac = None,
+                 mode = 'regression',
+                 monte_carlo_arguments = {}
+                 ):
+        super().__init__(
+            fcn = fcn, jac = jac, mode = mode,
+            monte_carlo_arguments = monte_carlo_arguments
+        )
+        
+    def __call__(self, p0):
+        # Draw HMC samples
+        self.samples, self.acc_frac, lowest_p, lowest_fcn = _hamiltonian_monte_carlo(
+            self._fcn, p0, self._jac, **self._args
+        )
+
+        # Return self
+        if self._mode != 'optimization': return self
+        else: return _OptimizeResult(
+                x = lowest_p,
+                fun = lowest_fcn
+        )
+        
+if __name__ == '__main__':
+    """ Imports """
+    # Imports for test
+    import gvar as gv
+    
+    """
+    Test: abstract function composition
+    """
+    cos = lambda x: gv.cos(x)
+    sin = lambda x: gv.sin(x)
+    cossin = _compose(*[cos, sin])
+    print('\nTest cos(sin(2)):', cossin(2.), gv.cos(gv.sin(2.)), '\n')
+    
+    """
+    Test: two-dimensional Gaussian
+    """
+    # Set mean & inverse covariance of 2d Gaussian
+    mean, icov = [*map(_numpy.array, [[1., 2.], [[0.5, 0.], [0., 0.5]]])]
+    
+    # Create function for calculating -log of posterior
+    logposterior = lambda x: 0.5 * _numpy.dot(x - mean, _numpy.dot(icov, x - mean))
+
+    # Create function for calculating gradient of -log of posterior
+    def dlogposterior(x):
+        x = [*map(gv.gvar, x)]
+        return logposterior(x).deriv(x)
+
+    # Define callback function
+    def callback(*args):
+        pass
+    
+    # Create Hamiltonain Monte Carlo object
+    samples = 10000
+    hmc = HamiltonianMonteCarlo(
+        fcn = logposterior,
+        jac = dlogposterior,
+        monte_carlo_arguments = {
+            'callback': callback,
+            'samples': samples,
+            'burn_in': samples // 2
+        }
+    )
+
+    # Do HMC simulation
+    hmc(_numpy.array([10., 10.]))
+
+    # Print summary
+    x, y = gv.dataset.avg_data(hmc.samples)
+    X, Y = hmc.x
+    print('x, y:', x, y, X, Y)
+    print('\n' + 25 * '--')

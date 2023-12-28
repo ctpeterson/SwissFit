@@ -1,0 +1,10 @@
+from .optimizer import Optimizer as _Optimizer # Optimizer parent class
+
+""" Brute class """
+class Brute(_Optimizer):
+    def __init__(self,
+                 fcn = None,
+                 bounds = None,
+                 optimizer_arguments = {}
+                 ):
+        

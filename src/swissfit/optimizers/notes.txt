@@ -1,0 +1,2 @@
+######### Future plans #########
+- Port stochastic gradient descent code to a faster language (C++, Julia, Nim?)
