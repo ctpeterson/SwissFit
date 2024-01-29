@@ -100,7 +100,7 @@ Estimator:
 ```
 Because the output of `fitter.p` are correlated [GVar](https://github.com/gplepage/gvar) variables, we can pass these parameters through any function that we want and get an output with Gaussian errors fully propagated through. For example, we could calculate `f(0.5)` and `f(1.0)`, along with the their covariance
 ```
- # Calculate f(0.5, f(1.0)
+# Calculate f(0.5, f(1.0)
 fa = sin(0.5, fit_parameters)
 fb = sin(1.0, fit_parameters)
 
@@ -108,8 +108,14 @@ fb = sin(1.0, fit_parameters)
 print('f(0.5) f(1.0):', fa, fb)
     
 # Print covariance matrix of (fa, fb)
- print('covariance of f(0.5) & f(1.0):\n', gvar.evalcov([fa, fb]))
+print('covariance of f(0.5) & f(1.0):\n', gvar.evalcov([fa, fb]))
 ```
-We could do the same thing for any other derived quantity. That's the power of automatic error propagation by automatic differentiation!
+We could do the same thing for any other derived quantity. That's the power of automatic error propagation by automatic differentiation! The output of the above block of code is:
+```
+f(0.5) f(1.0): 0.4955(85) 0.960(16)
+covariance of f(0.5) & f(1.0):
+ [[7.29612481e-05 1.40652271e-04]
+ [1.40652271e-04 2.71200285e-04]]
+```
 
 More realistic examples can be found under the `examples` folder. Have fun and happy fitting!
