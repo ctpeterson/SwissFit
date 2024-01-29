@@ -1,4 +1,5 @@
 import numpy as _numpy # General numerical operations
+import scipy as _scipy
 
 # Calculate square root of inverse of covariance matrix "M"
 def cov_inv_SVD(M, square_root = False, return_USV = False, svdcut = None):
@@ -47,16 +48,24 @@ def cov_inv_SVD(M, square_root = False, return_USV = False, svdcut = None):
     # Get inverse (M^{-1} or M^{-1/2})
     if square_root: inverse = _numpy.matmul(_numpy.diag(S**-0.5), _numpy.transpose(U))
     else: inverse = _numpy.matmul(
-            _numpy.transpose(V),
-            _numpy.matmul(_numpy.diag(1. / S), _numpy.transpose(U))
-    )
+            _numpy.transpose(V), # V^{T}
+            _numpy.matmul(
+                _numpy.diag(1. / S), # 1/S
+                _numpy.transpose(U) # U^{T}
+            )
+    ) # = V^{T} * 1/S * U^{T} = M^{-1}
 
     # Return appropriate data
     if return_USV: return U, S, V, inverse
     else: return inverse
 
 # Calculate Moore-Penrose pseudoinverse for parameter covariance estimation
-def pinv(M, herm = True): return _numpy.linalg.pinv(M, hermitian = herm)
+def pinv(M, herm = True):
+    """
+    NumPy's pinv and SciPy's pinvh perform poorly for the set
+    of problems that this code aims to solve.
+    """
+    return _scipy.linalg.pinv(M, rcond = 1e-64)
 
 # Log determinant
 def logdet(M):

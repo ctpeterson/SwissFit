@@ -198,8 +198,7 @@ class SwissFit(object):
             self._prior_icovsqrt = _linalg.cov_inv_SVD(
                 _gvar.evalcov(self._prior_flat),
                 square_root = True
-            )
-            self.prior_fcn = {'I': self._prior_function}
+            ); self.prior_fcn = {'I': self._prior_function};
         self._prior_mean = _gvar.mean(self._prior_flat)
         self._iprior_sdev = 1. / _gvar.sdev(self._prior_flat)
         
@@ -382,32 +381,28 @@ class SwissFit(object):
     def _getp(self):
         # Check estimation method
         if (self.estimation_method == 'map') or (self.estimation_method == 'none'):
-            # Create buffer for y & prior
-            buf = (
-                _numpy.array(self.data['y']).flat[:] if not self._prior_specified else
-                _numpy.concatenate(
-                    (_numpy.array(self.data['y']).flat,
-                     _numpy.array(self._prior_flat).flat)
-                )
-            )
-
-            # Get Jacobian df/dp
-            jacobian = self.calculate_jacobian(self.pmean) 
-            
-            # Get inverse of covariance matrix for data
-            inverse_data_covariance = _linalg.cov_inv_SVD(_gvar.evalcov(buf), square_root = True)
-            
             # Calculate dp/dy from Eq. A6 of [arXiv:1406.2279]
             dpdy = _numpy.matmul(
-                self._parameter_covariance,
-                _numpy.matmul(_numpy.transpose(jacobian), inverse_data_covariance)
-            )
+                self._parameter_covariance, # Sigma_Theta
+                _numpy.matmul(
+                    _numpy.transpose(
+                        self.calculate_jacobian(self.pmean)
+                    ), # (Sigma_{O,P}^{-1/2} * df/dp)^T
+                    _linalg.cov_inv_SVD(
+                        _gvar.evalcov(self._buf),
+                        square_root = True
+                    ) # Sigma_{O,P}^{-1/2}
+                )
+            ) # = Sigma_Theta * df/dp * Sigma_{O,P}^{-1} = dp/dy
 
             # Return GVars
             p = []
             for index in range(dpdy.shape[0]):
                 p.append(
-                    _gvar.gvar(self.pmean[index], _gvar.wsum_der(dpdy[index], buf), buf[0].cov)
+                    _gvar.gvar(
+                        self.pmean[index],
+                        _gvar.wsum_der(dpdy[index], self._buf),
+                        self._buf[0].cov)
                 )
 
             # Return new gvars
@@ -441,24 +436,32 @@ class SwissFit(object):
 
     # Calculate marginal likelihood
     def _log_marginal_likelihood(self, p):
-        self.logml = _linalg.logdet(self._parameter_covariance)
-        self.logml -= _linalg.logdet(_gvar.evalcov(self.data['y']))
-        if self._prior_specified:
-            for level in self.prior.keys():
-                self._level = level
-                self.logml += 2. * _linalg.logdet(
-                    self.prior_fcn[level](
-                        self.map_keys(p, return_parameters = True)
-                    )['icovroot'] if self._correlated_prior else
-                    _numpy.diag(
-                        self.prior_fcn[level](
-                            self.map_keys(p, return_parameters = True)
-                        )['icovroot']
-                    )
-                )
-        self.logml += sum([-self.chi2, -self.dof * _numpy.log(2. * _numpy.pi)])
-        self.logml *= 0.5
-    
+        """
+        Laplace approximation of the marginal likelihood:
+        -2 * logML = chi^2_aug + log ((2*pi)^{dof} * detSigma_{O,P}) / detSigma_Theta
+        """
+        
+        # Create buffer (reused in fit.p)
+        self._buf = (
+            _numpy.array(self.data['y']).flat[:] if not self._prior_specified else
+            _numpy.concatenate(
+                (_numpy.array(self.data['y']).flat, _numpy.array(self._prior_flat).flat)
+            )
+        )
+
+        # Calculate log determinants
+        logdet_SigmaTheta = -_linalg.logdet(
+            self.calculate_hessian(
+                self.pmean, return_hessian = True
+            )
+        )
+        logdet_SigmaOP = _linalg.logdet(_gvar.evalcov(self._buf))
+
+        # Calculate Laplace approximation of logML
+        self.logml = self.chi2 + self.dof * _numpy.log(2. * _numpy.pi)
+        self.logml += logdet_SigmaOP - logdet_SigmaTheta
+        self.logml *= -0.5
+
     """ 
     Do parameter estimation & collect results:
 
@@ -539,12 +542,15 @@ class SwissFit(object):
             # Frequentist chi2/dof
             freq_dof = len(self.data['y']) - len(self.pmean)
             freq_chi2 = -2. * self._log_likelihood(self.pmean) # "chi2_data"
+            self.chi2_data = freq_chi2
+            self.chi2_prior = self.chi2 - self.chi2_data
             if freq_dof > 0:
                 self._out += lbr + 'chi2/dof [dof] = ' + str(round(freq_chi2/freq_dof, 2))
                 self._out += ' [' + str(freq_dof) + ']'
                 self._out += lbr + 'Q = ' + str(round(
                     self._Q(chi2 = freq_chi2, dof = freq_dof), 2
                 )) + lbr + '(freq.) \n'
+                self.frequentist_dof = freq_dof
 
         # AIC
         self._out += lbr + 'AIC [k] = ' + str(round(self.aic, 2))
@@ -571,10 +577,13 @@ class SwissFit(object):
                             _numpy.sqrt(self._parameter_covariance[pcounter][pcounter])
                         )
                     )
-                    if pname in self.prior[level].keys(): prg = str(self.prior[level][pname][pind])
-                    else: prg = '0(inf)'
                     self._out += 13 * ' '
-                    self._out += '%-10s   %15s   [%8s]' % (str(pind + 1), pvalg, prg)
+                    if pname in self.prior[level].keys():
+                        prg = str(self.prior[level][pname][pind])
+                        self._out += '%-10s   %15s   [%8s]' % (str(pind + 1), pvalg, prg)
+                    else:
+                        prg = '0(inf)'
+                        self._out += '%-10s   %15s   [n/a]' % (str(pind + 1), pvalg)
                     self._out += '\n'
                     pcounter += 1
 

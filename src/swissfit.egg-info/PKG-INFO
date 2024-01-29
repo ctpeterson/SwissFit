@@ -9,6 +9,7 @@ License: UNKNOWN
 Keywords: least squares
 Platform: UNKNOWN
 Classifier: Programming Language :: Python :: 3
+License-File: LICENSE
 
 SwissFit: A cheesy multitool for complicated least squares fitting
 
