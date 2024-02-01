@@ -13,7 +13,6 @@ setup(
         'swissfit/machine_learning',
         'swissfit/optimizers',
         'swissfit/other_tools',
-        'swissfit/monte_carlo',
         'swissfit/empirical_bayes'
     ], 
     version = VERSION,
