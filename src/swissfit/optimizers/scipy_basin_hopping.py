@@ -36,18 +36,6 @@ def take_step_biased(x, indices = [],
     return x + dx
 take_step_biased.stepsize = 0.5 # Default step size
 
-# Stochastic tunneling accept/reject
-def accept_test_STUN(f_new, x_new, f_old, x_old, rng = None):
-    if fit.calculate_chi2(x_new) < accept_test_STUN.f_low: accept_test_STUN.f_low = f_new
-    fnew, fold = [*map(
-        lambda x: 1. - _numpy.exp(-accept_test_STUN.gamma * (x - accept_test_STUN.f_low)),
-        [f_new, f_old]
-    )]; acc = _numpy.exp(-max(0., fnew - fold) / accept_test_STUN.T);
-    return "force accept" if rng.uniform(0., 1.) < acc else False
-accept_test_STUN.T = 1.
-accept_test_STUN.f_low = _numpy.inf
-accept_test_STUN.gamma = 1.
-
 """ Basin hopping class """
 # Scipy basin hopping class
 class BasinHopping(_Optimizer):
@@ -59,13 +47,35 @@ class BasinHopping(_Optimizer):
         prohibitive at worst.
     """
     def __init__(self,
+                 fitter = None,
                  fcn = None,
                  optimizer_arguments = {}
                  ):
-        super().__init__(fcn = fcn, optimizer_arguments = optimizer_arguments)
+        # Take care of defaults if fitter specified
+        if (fitter is not None) and hasattr(fitter, 'local_optimizer_tag'):
+            if 'minimizer_kwargs' not in optimizer_arguments:
+                optimizer_arguments['minimizer_kwargs'] = {'method': fitter.local_optimizer}
+            if fitter.local_optimizer_tag == 'scipy_least_squares': fcn = fitter.calculate_residual
+            elif fitter.local_optimizer_tag == 'scipy_minimize': fcn = fitter.calculate_chi2
+        if fitter is not None:
+            fitter.global_optimizer = self.basin_hopping
+            fitter.global_optimizer_tag = 'basin_hopping'
+
+        # Initialize optimizer object
+        super().__init__(
+            fcn = fcn,
+            optimizer_arguments = optimizer_arguments
+        )
+    
     def __call__(self, p0):
         self.fit = _optimize.basinhopping(self._fcn, p0, **self._args)
         self._prepare_out_string(); return self.fit;
+
+    def basin_hopping(self, func, x0, **kwargs):
+        for key in kwargs.keys():
+            if key not in self._args.keys():
+                self._args[key] = kwargs[key]
+        return _optimize.basinhopping(func, x0, **self._args)
 
     def _prepare_out_string(self):
         self._out = 3 * ' ' + 'algorithm = SciPy basin hopping\n'

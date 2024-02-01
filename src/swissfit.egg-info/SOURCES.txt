@@ -1,10 +1,17 @@
 .gitignore
 LICENSE
 README.md
+SwissFit_logo.pdf
+SwissFit_logo.png
 setup.py
 setup.py~
+examples/example_tools.py
+examples/example_tools.py~
 examples/hessian_calculation.py
 examples/hessian_calculation.py~
+examples/lsqfit_benchmark_ising.py
+examples/lsqfit_benchmark_ising.py~
+examples/simple_fit.py
 examples/.ipynb_checkpoints/finite_size_scaling_neuroevolution-checkpoint.ipynb
 src/swissfit/__init__.py
 src/swissfit/__init__.py~

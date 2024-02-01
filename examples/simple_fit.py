@@ -66,7 +66,7 @@ if __name__ == '__main__':
     print(fitter)
     
     # Save fit parameters
-    fit_parameters = fitter.p['I']
+    fit_parameters = fitter.p
     
     # Calculate f(0.5, f(1.0)
     fa = sin(0.5, fit_parameters)

@@ -39,31 +39,37 @@ def scipy_least_squares(fcn, x0, **kwargs):
 """ Least squares class """
 class SciPyLeastSquares(_Optimizer):
     def __init__(self,
+                 fitter = None,
                  fcn = None,
                  jac = None,
                  tolerance_schedule = None,
                  optimizer_arguments = {}
                  ):
-        super().__init__(fcn = fcn, jac = jac, optimizer_arguments = optimizer_arguments)
-        self._tolerance_schedule = tolerance_schedule
-        
+        # Initialize optimizer object
+        super().__init__(
+            fcn = fcn if fitter is None else fitter.calculate_residual,
+            jac = jac if fitter is None else fitter.calculate_jacobian,
+            optimizer_arguments = optimizer_arguments
+        )
+
+        # Take care of defaults if fitter specified
+        if fitter is not None:
+            fitter.local_optimizer = self.scipy_least_squares
+            fitter.local_optimizer_tag = 'scipy_least_squares'
+            
     # Run SciPy least squares optimization on call
     def __call__(self, p0):
-        if self._tolerance_schedule is not None:
-            return scipy_least_squares(
-                self._fcn, p0, jac = self._jac,
-                **self._tolerance_schedule(self._args)
-            )
-        else: return scipy_least_squares(
-                self._fcn, p0,
-                jac = self._jac,
-                **self._args
+        return scipy_least_squares(
+            self._fcn, p0,
+            jac = self._jac,
+            **self._args
         )
 
     # Wrapper method (alternative to call - discards kwargs)
     def scipy_least_squares(self, fcn, x0, **kwargs):
         self._args['jac'] = self._jac
-        if self._tolerance_schedule is not None:
-            return scipy_least_squares(fcn, x0, **self._tolerance_schedule(self._args))
-        else: return scipy_least_squares(fcn, x0, **self._args)
+        for key in kwargs.keys():
+            if key not in self._args.keys():
+                self._args[key] = kwargs[key]
+        return scipy_least_squares(fcn, x0, **self._args)
         

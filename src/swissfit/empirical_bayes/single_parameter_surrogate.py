@@ -143,7 +143,7 @@ class SingleParameterSurrogate(_EmpiricalBayes):
                  pool = None,
                  n_points = None,
                  spline_algorithm = 'steffen',
-                 arguments = None,
+                 arguments = {},
                  optimization_method = 'direct' # 'direct' or 'bisection'
                  ):
         super().__init__(fcn = fcn, arguments = arguments, pool = pool)

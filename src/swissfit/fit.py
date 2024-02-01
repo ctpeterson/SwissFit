@@ -139,7 +139,18 @@ class SwissFit(object):
             _gvar.evalcov(y), square_root = True, svdcut = svdcut
         ); self._data_sdev = _gvar.sdev(y);
 
+        """ Check if priors are hierarchical """
+        if 'I' not in self.prior.keys():
+            self.prior = {'I': self.prior}
+            self._hierarchical = False
+        else: self._hierarchical = True
+        if 'I' not in self.p0.keys(): self.p0 = {'I': self.p0}
+        
         """ Set prior function up """
+        # Fix if priors are not hierarchical
+        if not self._hierarchical:
+            prior_transformation_fcn['I'] = prior_transformation_fcn
+        
         # Transform transformation function
         for level in self.prior.keys():
             if level not in prior_transformation_fcn.keys():
@@ -157,14 +168,12 @@ class SwissFit(object):
         """ Preprocess priors & starting values for fit parameters """
         # Correct prior & p0 if not specified in standard format
         if 'x' in self.data.keys():
-            if 'I' not in self.prior.keys():
+            if not self._hierarchical:
                 self._wrap_fcn = lambda *args, p: self.fit_fcn(*args, p = p['I'])
             else: self._wrap_fcn = lambda *args, p: self.fit_fcn(*args, p = p)
         else:
-            if 'I' not in self.prior.keys(): self._wrap_fcn = lambda p: self.fit_fcn(p['I'])
+            if not self._hierarchical: self._wrap_fcn = lambda p: self.fit_fcn(p['I'])
             else: self._wrap_fcn = lambda p: self.fit_fcn(p)
-        if 'I' not in self.prior.keys(): self.prior = {'I': self.prior}
-        if 'I' not in self.p0.keys(): self.p0 = {'I': self.p0}
             
         # Process prior & p0
         self._p0 = []; self._p = {}; self._lngths = {};
@@ -185,8 +194,8 @@ class SwissFit(object):
                     self._p[level][prior_key] = self.p0[level][prior_key]
                     self._lngths[level][prior_key] = [size, size + len(self.p0[level][prior_key])]
                     size += len(self.p0[level][prior_key])
-                    for p0 in self.p0[level][p0_key]: self._p0.append(p0)
-                    self.p0[level][p0_key] = _numpy.array(self.p0[level][p0_key])
+                    for p0 in self.p0[level][prior_key]: self._p0.append(p0)
+                    self.p0[level][prior_key] = _numpy.array(self.p0[level][prior_key])
                 self._prior[level][prior_key] = self.prior[level][prior_key]
                 for prv in self._prior[level][prior_key]:
                     self._prior_flat.append(
@@ -275,7 +284,7 @@ class SwissFit(object):
                 if self._correlated_prior:
                     resid += list(_numpy.matmul(prior['icovroot'], prior['diff']))
                 else: resid += list(prior['diff'] * prior['icovroot'])
-
+                
         # Return residual from prior
         return resid
     
@@ -406,7 +415,8 @@ class SwissFit(object):
                 )
 
             # Return new gvars
-            return self.map_keys(p, return_parameters = True)
+            if self._hierarchical: return self.map_keys(p, return_parameters = True)
+            else: return self.map_keys(p, return_parameters = True)['I']
         elif (self.estimation_method == 'mcmc'): return self.fit.x
             
     # Calling fit.p will invoke _getp
@@ -486,11 +496,11 @@ class SwissFit(object):
         
         # Do fit by calling SwissFit optimizer
         self._estimator_object = estimator
-        if (estimation_method == 'map') or (estimation_method == 'mcmc'):
+        if estimator is None: self.pmean = self._p0 if p0 is None else p0
+        elif (estimation_method == 'map') or (estimation_method == 'mcmc'):
             self.fit = estimator(
                 self._p0 if p0 is None else p0
             ); self.pmean = _gvar.mean(self.fit.x);
-        elif estimation_method == 'none': self.pmean = self._p0 if p0 is None else p0
         else: # Tell user that estimation method is invalid
             print('"' + estimation_method + '"', 'is an invalid option. Exiting.'); exit();
 
