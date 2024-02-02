@@ -5,12 +5,18 @@ from functools import partial
 
 """ Create custom step taking function for basin hopping """
 # Create custom step taking function
-def create_take_step(alpha, fitter, scipy_basin_hopping):
+def create_take_step(alpha, fitter, scipy_basin_hopping, force_positivity = True):
     # Basin hopping step that forces positivity on parameters
-    positivity_enforcing_step = partial(
-        scipy_basin_hopping.take_step_biased, # Take step forcing positivity in step
-        indices = [ind for ind in range(len(fitter.p0['I']['c']))], # Indices of critical parameters
-        array_size = len(fitter.pmean), # Number of parameters
+    if force_positivity:
+        positivity_enforcing_step = partial(
+            scipy_basin_hopping.take_step_biased, # Take step forcing positivity in step
+            indices = [ind for ind in range(len(fitter.p0['I']['c']))], # Indices of crit. prms.
+            array_size = len(fitter.pmean), # Number of parameters
+        )
+    else: positivity_enforcing_step = partial(
+            scipy_basin_hopping.take_step_biased, # Take step forcing positivity in step
+            indices = [], # Indices of crit. prms.
+            array_size = len(fitter.pmean), # Number of parameters
     )
 
     # Custom take_step function for SciPy's basin hopping
@@ -203,10 +209,55 @@ def clockinf_data(obs, Kl, Khs, vols, data_in_fit = True):
     """ Return data """
     return data, starting_parameters
 
-""" Tools for getting clock4 interpolation data """
+""" Tools for getting clock4 interpolations & interpolation data """
+
+def clock4_interp_data(vols, return_starting_parameters = False):
+    # Get fit data
+    data = {vol: {'x': [], 'y': []} for vol in vols}
+    for vol in vols:
+        with open('./example_data/clock4/clock4_' + vol + '.dat', 'r') as in_file:
+            for line in in_file.readlines():
+                if ('(Energy)' in line):
+                    err, mean, T = [*map(float, [line.split()[-(index + 1)] for index in range(3)])]
+                    data[vol]['x'].append([1. / T])
+                    data[vol]['y'].append(gv.gvar(mean, err))
+        for key in data[vol].keys(): data[vol][key] = np.array(data[vol][key])
+
+    # Get starting parameters
+    starting_parameters = {vol: None for vol in vols}
+    if return_starting_parameters:
+        for vol in vols:
+            starting_parameters[vol] = gv.load(
+                './example_data/clock4/clock4_energy_starting_parameters_' + vol + '.bin'
+            )['I']
+
+    # Return what is needed
+    if return_starting_parameters:
+        return data, starting_parameters
+    else: return data
 
 def clock4_interp(vols):
     interp_params = {}
     for vol in vols:
         interp_params[vol] = gv.load('./example_data/clock4/clock4_energy_' + vol + '.bin')['I']
     return interp_params
+
+def clockinf_interp(vols):
+    interp_params = {}
+    for vol in vols:
+        interp_params[vol] = gv.load(
+            './example_data/clockinf/clockinf_helicity_' + vol + '.bin'
+        )['I']
+    return interp_params
+
+def clockinf_interp_data(vols, return_starting_parameters = False):
+    data = {vol: {'x': [], 'y': []} for vol in vols}
+    for vol in vols:
+        file_name = './example_data/clockinf/clockinf_helicity_' + vol + '.dat'
+        with open(file_name, 'r') as in_file:
+            for line in in_file.readlines():
+                K, mean, err = [*map(float, line.split())]
+                data[vol]['x'].append([K])
+                data[vol]['y'].append(gv.gvar(mean, err))
+        for key in data[vol].keys(): data[vol][key] = np.array(data[vol][key])
+    return data
