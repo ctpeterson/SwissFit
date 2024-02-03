@@ -53,10 +53,7 @@ if __name__ == '__main__':
     )
     
     # Create optimizer object
-    optimizer = scipy_least_squares.SciPyLeastSquares(
-        fcn = fitter.calculate_residual,
-        jac = fitter.calculate_jacobian
-    )
+    optimizer = scipy_least_squares.SciPyLeastSquares(fitter = fitter)
     
     """ Do fit """
     # Do fit by passing optimizer through fitter
