@@ -66,12 +66,9 @@ fitter = fit.SwissFit(
     fit_fcn = sin,
 )
 ```
-To fit to data, we also need to create an optimizer object. We do so by passing the SwissFit object's residual calculation method and jacobian calculation method through a SwissFit optimizer constructor.
+To fit to data, we also need to create an optimizer object. We do so by passing the SwissFit object through the optimizer object's constructor.
 ```
-optimizer = scipy_least_squares.SciPyLeastSquares(
-    fcn = fitter.calculate_residual,
-    jac = fitter.calculate_jacobian
-)
+optimizer = scipy_least_squares.SciPyLeastSquares(fitter = fitter)
 ```
 Now we are ready to fit. It is as simple as passing the SwissFit optimizer object through the call method of the SwissFit object
 ```
@@ -80,7 +77,7 @@ fitter(optimizer)
 Now that we have done our fit, we can print the output and save our (correlated) fit parameters.
 ```
 fitter(optimizer)
-fit_parameters = fitter.p['I']
+fit_parameters = fitter.p
 ```
 The output of print is:
 ```
