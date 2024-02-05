@@ -10,7 +10,7 @@ SwissFit is a general-purpose library for fitting models to data with Gaussian-d
 
 A beta release of SwissFit will be uploaded to PyPI for simple installation in the near future. For now, install SwissFit as follows. First, clone this repository into whatever folder that you wish. Then `cd` into your cloned directory for SwissFit and install by running `setup.py` as
 ```
-python3 setup.py
+python3 setup.py install
 ```
 That's all. The `setup.py` script will install SwissFit for you, along with all of SwissFit's dependences; namely, [Numpy](https://github.com/numpy/numpy), [SciPy](https://scipy.org/), [scikit-learn](https://scikit-learn.org/stable/) and [GVar](https://github.com/gplepage/gvar).
 
