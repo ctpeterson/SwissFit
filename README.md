@@ -8,14 +8,14 @@ SwissFit is a general-purpose library for fitting models to data with Gaussian-d
 
 ## Requirements
 
-  - `Python>=3.1`
+  - `Python>=3.10`
   - [Numpy](https://github.com/numpy/numpy)
   - [SciPy](https://scipy.org/)
   - [Scikit-learn](https://scikit-learn.org/stable/)
   - [GVar](https://github.com/gplepage/gvar)
   - [Matplotlib](https://github.com/matplotlib/matplotlib)
 
-All versions of the above libraries should at least be compatible with `Python>=3.1`. Library dependencies are will be automatically installed.
+All versions of the above libraries should at least be compatible with `Python>=3.10`. Library dependencies are will be automatically installed.
 
 ## Installation
 
