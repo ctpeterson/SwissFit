@@ -1,8 +1,0 @@
-# External imports
-import gvar as gv
-import lsqfit as lsqfit
-
-# Local imports
-import example_tools as et
-
-# SwissFit imports
