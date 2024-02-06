@@ -15,7 +15,7 @@ SwissFit is a general-purpose library for fitting models to data with Gaussian-d
   - [GVar](https://github.com/gplepage/gvar)
   - [Matplotlib](https://github.com/matplotlib/matplotlib)
 
-All versions of the above libraries should at least be compatible with `Python>=3.10`. Library dependencies are will be automatically installed.
+All versions of the above libraries should at least be compatible with `Python>=3.10`. Library dependencies are automatically installed.
 
 ## Installation
 
