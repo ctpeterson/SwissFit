@@ -19,7 +19,7 @@ All versions of the above libraries should at least be compatible with `Python>=
 
 ## Installation
 
-A beta release of SwissFit will be uploaded to PyPI for simple installation in the near future. For now, install SwissFit as follows. First, clone this repository into whatever folder that you wish. Then `cd` into your cloned directory for SwissFit and install by running `setup.py` as
+SwissFit will be uploaded to PyPI for simple installation in the near future. For now, install SwissFit as follows. First, clone this repository into whatever folder that you wish. Then `cd` into your cloned directory for SwissFit and install by running `setup.py` as
 ```
 python3 setup.py install
 ```
