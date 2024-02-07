@@ -6,7 +6,7 @@
 
 SwissFit is a general-purpose library for fitting models to data with Gaussian-distributed noise. The design of this library is inspired by Peter Lepage's [lsqfit](https://github.com/gplepage/lsqfit) and operates in a similar manner. As such, it builds on top of the [GVar](https://github.com/gplepage/gvar) library and extensively utilizes the powerful numerical tools of [SciPy](https://scipy.org/) and [Scikit-learn](https://scikit-learn.org/stable/). SwissFit is readily deployable; however, it is under active development.
 
-If you are here because you looked at "Constrained curve fitting for semi-parametric models with radial basis function networks" by Curtis Taylor Peterson and Anna Hasenfratz, I have provided `Jupyter` notebooks that reproduce our results from that paper under the `examples` folder.
+If you are here because you looked at "Constrained curve fitting for semi-parametric models with radial basis function networks" by Curtis Taylor Peterson and Anna Hasenfratz ([arXiv:2402.04175](https://arxiv.org/abs/2402.04175)), I have provided `Jupyter` notebooks that reproduce our results from that paper under the `examples` folder.
 
 ## Requirements
 
