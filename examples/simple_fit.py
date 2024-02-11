@@ -64,7 +64,8 @@ if __name__ == '__main__':
     
     # Save fit parameters
     fit_parameters = fitter.p
-    
+
+    """ Play around with fit parameters """
     # Calculate f(0.5, f(1.0)
     fa = sin(0.5, fit_parameters)
     fb = sin(1.0, fit_parameters)
@@ -74,3 +75,46 @@ if __name__ == '__main__':
     
     # Print covariance matrix of (fa, fb)
     print('covariance of f(0.5) & f(1.0):\n', gvar.evalcov([fa, fb]))
+
+    """ Plot data """
+    # Import Matplotlib
+    import matplotlib.pyplot as plt
+
+    # Plot fit data
+    plt.errorbar(
+        data['x'], 
+        gvar.mean(data['y']), 
+        gvar.sdev(data['y']), 
+        color = 'k', markerfacecolor = 'none',
+        markeredgecolor = 'k',
+        capsize = 6., fmt = 'o'
+    )
+
+    # Get result of fit function
+    x = np.linspace(data['x'][0], data['x'][-1], 100)
+    y = sin(x, fit_parameters)
+    
+    # Plot error of fit function from fit as a colored band
+    plt.fill_between(
+        x,
+        gvar.mean(y) - gvar.sdev(y),
+        gvar.mean(y) + gvar.sdev(y),
+        color = 'maroon', alpha = 0.5
+    )
+    
+    # x/y label
+    plt.xlabel('x', fontsize = 20.)
+    plt.ylabel('$a\\sin(bx)$', fontsize = 20.)
+
+    # Show fit parameters
+    plt.text(
+        7.25, 0.75,
+        '$a=' + str(fit_parameters['c'][0]) + '$, \n $b=' + str(fit_parameters['c'][-1]) + '$',
+        fontsize = 15.
+    )
+    
+    # Grid
+    plt.grid('on')
+
+    # Show figure
+    plt.show()
