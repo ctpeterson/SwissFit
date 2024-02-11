@@ -74,7 +74,11 @@ def create_dataset(a, b, error):
 This function takes in the values for $a$, $b$ and the error that we want our artificial dataset to possess. It returns a dictionary with inputs `data['x']` in $[0,2\pi/b]$ and outputs `data['y']` that are uncorrelated [GVar](https://github.com/gplepage/gvar) variables. Note that SwissFit is fully capable of handling correlated [GVar](https://github.com/gplepage/gvar) variables. This dictionary of inputs is what we will feed into SwissFit. Before we create our SwissFit object, let's generate our artificial dataset and define our priors.
 ```
 # Artificial dataset
-data = create_dataset(a, b, error)
+data = create_dataset(
+  2.0, # a
+  0.5, # b
+  0.1  # error
+)
     
 # Create priors
 prior = {'c': [gvar.gvar('1.5(1.5)'), gvar.gvar('0.75(0.75)')]}
@@ -97,7 +101,7 @@ fitter(optimizer)
 ```
 Now that we have done our fit, we can print the output and save our (correlated) fit parameters.
 ```
-fitter(optimizer)
+print(optimizer)
 fit_parameters = fitter.p
 ```
 The output of print is:
