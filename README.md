@@ -29,9 +29,13 @@ That's all. The `setup.py` script will install SwissFit for you, along with all 
 
 ## Basic example usage
 
-Let's get familiar with SwissFit by fitting a simple sine function. The full example code can be found under `examples/simple_fit.py`. Choose the sine function to be
+Let's get familiar with SwissFit by fitting a simple sine function. The full example code can be found under `examples/simple_fit.py` or `examples/simple_fit.ipynb`. Choose the sine function to be
 $$f(x) = a\sin(bx),$$
-with $a=2.0$ and $b=0.5$. First, let's import everything that we'll need.
+with $a=2.0$ and $b=0.5$. Once everything is said and done, we'll get the following result.
+<p align="center">
+  <img width="683" height="266" src="https://github.com/ctpeterson/SwissFit/blob/main/SwissFit_logo.png">
+</p>
+First, let's import everything that we'll need.
 ```
 """ SwissFit imports """
 from swissfit import fit # SwissFit fitter
