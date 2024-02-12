@@ -388,7 +388,3 @@ plt.legend()
 plt.grid('on')
 ```
 This produces the following plot
-
-<p align="center">
-  <img src="https://github.com/ctpeterson/SwissFit/blob/main/simple_rbfn_fit.png">
-</p>
