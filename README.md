@@ -126,6 +126,30 @@ Estimator:
    SwissFit optimizer object
 *Laplace approximation
 ```
+We can also grab many quality of fit & information criteria directly from `fitter` as follows.
+```
+print(
+    'chi2_data:', fitter.chi2_data,
+    '\nchi2_prior:', fitter.chi2_prior,
+    '\nchi2:', fitter.chi2,
+    '\ndof (Bayes):', fitter.dof,
+    '\ndof (freq.):', fitter.frequentist_dof,
+    '\np-value:', fitter.Q,
+    '\nmarginal likelihood:', fitter.logml,
+    '\nAkaike information criterion:', fitter.aic
+)
+```
+The output of the above print statement is
+```
+chi2_data: 20.628697369539452 
+chi2_prior: 0.22612697167343043 
+chi2: 20.854824341212883 
+dof (Bayes): 20 
+dof (freq.): 18 
+p-value: 0.40572144469143007 
+marginal likelihood: 7.511209597426163 
+Akaike information criterion: 24.628697369539452
+```
 Because the output of `fitter.p` are correlated [GVar](https://github.com/gplepage/gvar) variables, we can pass these parameters through any function that we want and get an output with Gaussian errors fully propagated through. For example, we could calculate `f(0.5)` and `f(1.0)`, along with the their covariance
 ```
 # Calculate f(0.5, f(1.0)
@@ -186,4 +210,181 @@ plt.text(
 # Grid
 plt.grid('on')
 ```
-More realistic examples can be found under the `examples` folder. Have fun and happy fitting!
+More realistic examples can be found under the `examples` folder. 
+
+## Basic fit with a radial basis function network
+
+Let's try and interpolate over the sine function from `examples/simple_fit.ipynb` with a radial basis function network (RBFN). The sine function is
+$$f(x) = a\sin(bx),$$
+with $a=2.0$ and $b=0.5$. First, let's import everything we need.
+```
+""" SwissFit imports """
+from swissfit import fit # SwissFit fitter
+from swissfit.optimizers import scipy_basin_hopping # Basin hopping global optimizer
+from swissfit.optimizers import scipy_least_squares # Trust region reflective local optimizer
+from swissfit.machine_learning import radial_basis # Module for radial basis function network
+
+""" Other imports """
+import gvar as gvar # Peter Lepage's GVar library
+import numpy as np # NumPy
+```
+So that we have something to fit to, let's create an artificial dataset. We do so in the next block.
+```
+# Parameters of the sine function & the error
+a, b, error = 2.0, 0.5, 0.1
+
+# Actual parameters of the sine function
+real_fit_parameters = {'c': [a, b]}
+
+# Real dataset
+np.random.seed(0) # Seed random number generator
+data = {} # Dictionary to hold data
+
+# Input data
+data['x'] = np.linspace(0., 2. * np.pi / b, 20)
+
+# Output data
+data['y'] = [
+    gvar.gvar(
+        np.random.normal(a * np.sin(b * xx), error), # Random mean
+        error # Error on mean
+    )
+    for xx in data['x']
+]
+```
+Next, let's create a radial basis function network. We do so by first specifying the topology of the RBFN. The following RBFN will have two nodes in its hidden layer.
+```
+network_topology = {
+    'lyr1': { # Hidden layer
+        'in': 1, 'out': 2, # Dimension of input & output
+        'activation': 'exp', # Exponential activation
+    },
+    'lyr2': { # Output layer
+        'in': 2, 'out': 1,
+        'activation': 'linear' # Linear activation
+    }
+}
+```
+In `SwissFit`, we create a RBFN by passing the above dictionary to a `RadialBasisFunctionNeuralNetwork` object constructor as follows.
+```
+# Create radial basis function network
+neural_network = radial_basis.RadialBasisNeuralNetwork(network_topology)
+
+# Initialize radial basis function network parameters
+p0 = neural_network.initialize_parameters(initialization = 'zero', p0 = {})
+```
+That's it! Now let's define our fit function using the instance of the `RadialBasisFunctioNeuralNetwork` class that we just created.
+```
+def fit_fcn(x, p):
+    return np.ravel(neural_network.out(x, p))
+```
+Now that we have our fit function, let's go ahead and fit. Because the loss landscape is much more complicated than it is in examples/simple_fit.ipynb, we will use a global optimizer. Everything else is exactly the same.
+```
+# Basin hopping parameters
+niter_success = 200 # Number of iterations with same best fit parameters for basin hopping to "converge"
+niter = 10000 # Upper bound on total number of basin hopping iterations
+T = 1. # Temperature hyperparameter for basin hopping
+
+# Create SwissFit fit object
+fitter = fit.SwissFit(
+    udata = data, # Fit data; "data = data" is also acceptable - "udata" means "uncorrelated"
+    p0 = p0, # Starting values for parameters,
+    fit_fcn = fit_fcn, # Fit function
+)
+
+# Create trust region reflective local optimizer from SciPy - fitter will save reference to local_optimizer for basin hopping
+local_optimizer = scipy_least_squares.SciPyLeastSquares(fitter = fitter)
+
+# Basin hopping global optimizer object instantiation
+global_optimizer = scipy_basin_hopping.BasinHopping(
+    fitter = fitter, # Fit function is the "calculate_residual" method of fitter object
+    optimizer_arguments = {
+        'niter_success': niter_success,
+        'niter': niter,
+        'T': T
+    }
+)
+```
+Let's fit!
+```
+# Do fit
+fitter(global_optimizer)
+
+# Print result of fit
+print(fitter)
+
+# Save fit parameters
+fit_parameters = fitter.p
+```
+The output of `print(fitter)` is
+```
+SwissFit: 🧀
+   chi2/dof [dof] = 2.06 [13]   Q = 0.01   (Bayes) 
+   chi2/dof [dof] = 2.06 [13]   Q = 0.01   (freq.) 
+   AIC [k] = 40.78 [7]   logML = -1.626*
+
+Parameters*:
+     lyr1.center
+             1                  9.357(70)   [n/a]
+             2                  3.124(64)   [n/a]
+     lyr1.bandwidth
+             1                 -0.186(28)   [n/a]
+             2                  0.169(23)   [n/a]
+     lyr2.weight
+             1                  -2.01(17)   [n/a]
+             2                   2.18(17)   [n/a]
+     lyr2.bias
+             1                  -0.03(17)   [n/a]
+
+Estimator:
+   algorithm = SciPy basin hopping
+   minimization_failures = 5
+   nfev = 13464
+   njev = 11988
+   fun = 13.39159977365442
+   message = ['success condition satisfied']
+   nit = 362
+   success = True
+
+*Laplace approximation
+```
+Why don't we try and see what our fit looks like?
+```
+# Import Matplotlib
+import matplotlib.pyplot as plt
+
+# Plot fit data
+plt.errorbar(
+    data['x'], 
+    gvar.mean(data['y']), 
+    gvar.sdev(data['y']), 
+    color = 'k', markerfacecolor = 'none',
+    markeredgecolor = 'k',
+    capsize = 6., fmt = 'o',
+    label = 'data'
+)
+
+# Get result of fit function
+x = np.linspace(data['x'][0], data['x'][-1], 100)
+y = fit_fcn(x, fit_parameters)
+
+# Plot error of fit function from fit as a colored band
+plt.fill_between(
+    x,
+    gvar.mean(y) - gvar.sdev(y),
+    gvar.mean(y) + gvar.sdev(y),
+    color = 'maroon', alpha = 0.5,
+    label = 'RBFN'
+)
+
+# x/y label
+plt.xlabel('x', fontsize = 20.)
+plt.ylabel('$a\\sin(bx)$', fontsize = 20.)
+
+# Show legend
+plt.legend()
+
+# Grid
+plt.grid('on')
+```
+This produces the following plot
