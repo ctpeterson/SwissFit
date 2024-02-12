@@ -337,31 +337,31 @@ fit_parameters = fitter.p
 The output of `print(fitter)` is
 ```
 SwissFit: 🧀
-   chi2/dof [dof] = 2.06 [13]   Q = 0.01   (Bayes) 
-   chi2/dof [dof] = 2.06 [13]   Q = 0.01   (freq.) 
-   AIC [k] = 40.78 [7]   logML = -1.626*
+   chi2/dof [dof] = 0.73 [13]   Q = 0.74   (Bayes) 
+   chi2/dof [dof] = 0.73 [13]   Q = 0.74   (freq.) 
+   AIC [k] = 23.44 [7]   logML = 8.846*
 
 Parameters*:
      lyr1.center
-             1                  9.357(70)   [n/a]
-             2                  3.124(64)   [n/a]
+             1                  14.0(1.5)   [n/a]
+             2                  3.074(42)   [n/a]
      lyr1.bandwidth
-             1                 -0.186(28)   [n/a]
-             2                  0.169(23)   [n/a]
+             1                   0.09(10)   [n/a]
+             2                 -0.047(19)   [n/a]
      lyr2.weight
-             1                  -2.01(17)   [n/a]
-             2                   2.18(17)   [n/a]
+             1                   3.8(2.5)   [n/a]
+             2                   5.4(1.7)   [n/a]
      lyr2.bias
-             1                  -0.03(17)   [n/a]
+             1                  -3.3(1.7)   [n/a]
 
 Estimator:
    algorithm = SciPy basin hopping
-   minimization_failures = 5
-   nfev = 13464
-   njev = 11988
-   fun = 13.39159977365442
+   minimization_failures = 9
+   nfev = 22139
+   njev = 18175
+   fun = 4.720701592800511
    message = ['success condition satisfied']
-   nit = 362
+   nit = 510
    success = True
 
 *Laplace approximation
