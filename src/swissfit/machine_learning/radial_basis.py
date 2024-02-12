@@ -150,7 +150,9 @@ class RadialBasisNeuralNetwork(_NeuralNetwork):
 
     # Norm for specific layer
     def _norm(self, x, lyr):
-        return self._norm_dict[self.topo[lyr]['norm']](x)
+        return self._norm_dict[self.topo[lyr]['norm']]([
+            *map(lambda x: x if _gvar.mean(x) != 0 else x + 1e-64, x)
+        ])
     
     # Radial basis function
     def _rbf(self, x, lyr):
