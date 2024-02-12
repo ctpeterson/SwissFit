@@ -8,6 +8,23 @@ SwissFit is a general-purpose library for fitting models to data with Gaussian-d
 
 If you are here because you looked at "Constrained curve fitting for semi-parametric models with radial basis function networks" by Curtis Taylor Peterson and Anna Hasenfratz ([arXiv:2402.04175](https://arxiv.org/abs/2402.04175)), I have provided `Jupyter` notebooks that reproduce our results from that paper under the `examples` folder.
 
+## Features
+
+`SwissFit` currently supports the following.
+
+  - [lsqfit](https://github.com/gplepage/lsqfit)-style least squares fitting (`examples/simple_fit.ipynb`), including priors. Quality of fit and model selection criteria directly available from fit.
+  - Fully integrated with [GVar](https://github.com/gplepage/gvar), which allows fit parameters to be propagated into a secondary analysis with full automatic error propagation
+  - Support for integrating radial basis function networks (`examples/simple_radial_basis_function_fit.ipynb`) and feedforward neural networks (example notebook coming soon) in least-squares model function
+  - Optimization with [SciPy](https://scipy.org/)'s trust region reflective local optimization algorithm (`examples/simple_fit.ipynb`) and/or [SciPy](https://scipy.org/)'s basin hopping global optimization algorithm (`examples/simple_radial_basis_function_fit.ipynb`)
+  - Basic support for surrogate-based empirical Bayes ([arXiv:2402.04175](https://arxiv.org/abs/2402.04175); see any of the notebooks under `examples` that reproduce the results from that paper).
+
+The following are planned or already in the works for `SwissFit`
+
+  - Optimization with [SciPy](https://scipy.org/) `minimize` for local optimization and [SciPy](https://scipy.org/)'s various global optimization algorithms
+  - Optimization with stochastic gradient descent, specifically Adam and its Nesterov-accelerated counterpart
+  - Empirical Bayes via [Scikit-learn](https://scikit-learn.org/stable/)'s Bayesian optimization module
+  - Model parameter estimation by direct sampling of posterior distributions
+
 ## Requirements
 
   - `Python>=3.10`
