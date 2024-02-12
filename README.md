@@ -348,43 +348,4 @@ Estimator:
 
 *Laplace approximation
 ```
-Why don't we try and see what our fit looks like?
-```
-# Import Matplotlib
-import matplotlib.pyplot as plt
-
-# Plot fit data
-plt.errorbar(
-    data['x'], 
-    gvar.mean(data['y']), 
-    gvar.sdev(data['y']), 
-    color = 'k', markerfacecolor = 'none',
-    markeredgecolor = 'k',
-    capsize = 6., fmt = 'o',
-    label = 'data'
-)
-
-# Get result of fit function
-x = np.linspace(data['x'][0], data['x'][-1], 100)
-y = fit_fcn(x, fit_parameters)
-
-# Plot error of fit function from fit as a colored band
-plt.fill_between(
-    x,
-    gvar.mean(y) - gvar.sdev(y),
-    gvar.mean(y) + gvar.sdev(y),
-    color = 'maroon', alpha = 0.5,
-    label = 'RBFN'
-)
-
-# x/y label
-plt.xlabel('x', fontsize = 20.)
-plt.ylabel('$a\\sin(bx)$', fontsize = 20.)
-
-# Show legend
-plt.legend()
-
-# Grid
-plt.grid('on')
-```
-This produces the following plot
+For a visualization of the RBFN-based interpolation, see `examples/simple_radial_basis_function_fit.ipynb`
