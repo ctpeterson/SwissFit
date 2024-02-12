@@ -26,6 +26,8 @@ The following are planned or already in the works for `SwissFit`
   - Model parameter estimation by direct sampling of posterior distributions
   - Extended support for hierarchical Bayesian modelling
 
+`SwissFit` is currently in beta. Help us get to a v1.0.0 release by providing feedback and letting me know if you run into problems! Thank you for considering to use `SwissFit` for whatever problem that you are trying to tackle!
+
 ## Requirements
 
   - `Python>=3.10`
