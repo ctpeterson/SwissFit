@@ -368,8 +368,6 @@ Estimator:
 ```
 Let's visualize what our fit looks like.
 ```
-
-
 # Import Matplotlib
 import matplotlib.pyplot as plt
 
