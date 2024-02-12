@@ -8,6 +8,8 @@ SwissFit is a general-purpose library for fitting models to data with Gaussian-d
 
 If you are here because you looked at "Constrained curve fitting for semi-parametric models with radial basis function networks" by Curtis Taylor Peterson and Anna Hasenfratz ([arXiv:2402.04175](https://arxiv.org/abs/2402.04175)), I have provided `Jupyter` notebooks that reproduce our results from that paper under the `examples` folder.
 
+If you use `SwissFit`, please consider citing this repository (see "cite the repository" on the right) or [arXiv:2402.04175](https://arxiv.org/abs/2402.04175).
+
 ## Features
 
 `SwissFit` currently supports the following.
