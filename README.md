@@ -31,13 +31,7 @@ That's all. The `setup.py` script will install SwissFit for you, along with all 
 
 Let's get familiar with SwissFit by fitting a simple sine function. The full example code can be found under `examples/simple_fit.py` or `examples/simple_fit.ipynb`. Choose the sine function to be
 $$f(x) = a\sin(bx),$$
-with $a=2.0$ and $b=0.5$. Once everything is said and done, we'll get the following result.
-
-<p align="center">
-  <img src="https://github.com/ctpeterson/SwissFit/blob/main/simple_fit.png">
-</p>
-
-First, let's import everything that we'll need.
+with $a=2.0$ and $b=0.5$. First, let's import everything that we'll need.
 ```
 """ SwissFit imports """
 from swissfit import fit # SwissFit fitter
@@ -210,6 +204,10 @@ plt.text(
 # Grid
 plt.grid('on')
 ```
+This produces the following figure.
+<p align="center">
+  <img src="https://github.com/ctpeterson/SwissFit/blob/main/simple_fit.png">
+</p>
 More realistic examples can be found under the `examples` folder. 
 
 ## Basic fit with a radial basis function network
