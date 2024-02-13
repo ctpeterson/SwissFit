@@ -1,7 +1,6 @@
+# SwissFit
 [![Python](https://img.shields.io/badge/Python-3.10+-brightgreen.svg)](https://www.python.org)
 [![License: GPL v2](https://img.shields.io/badge/license-MIT-blue)](https://github.com/ctpeterson/SwissFit?tab=MIT-1-ov-file)
-
-# SwissFit
 
 <p align="center">
   <img src="https://github.com/ctpeterson/SwissFit/blob/main/SwissFit_logo.png">
