@@ -24,6 +24,7 @@ If you use `SwissFit`, please consider citing this repository (see "cite the rep
 
 The following are planned or already in the works for `SwissFit`
 
+  - Documentation! My apologies for the current lack of documentation. Once I finish my Ph.D. defense in April of 2024, you can expect proper documentation.
   - Optimization with [SciPy](https://scipy.org/) `minimize` for local optimization and [SciPy](https://scipy.org/)'s various global optimization algorithms
   - Optimization with stochastic gradient descent, specifically Adam and its Nesterov-accelerated counterpart
   - Empirical Bayes via [Scikit-learn](https://scikit-learn.org/stable/)'s Bayesian optimization module
