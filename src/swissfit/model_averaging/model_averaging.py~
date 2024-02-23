@@ -1,0 +1,28 @@
+import numpy as _numpy # Number crunching
+
+class BayesianModelAveraging(object):
+    def __init__(
+            self,
+            parameter_locations = {},
+            models = {}
+    ):
+        # Get inputs
+        self.parameter_locations = parameter_locations
+        self.models = models
+
+        # Do model-averaging
+        self._average()
+        
+    # For grabbing mean & covariance
+    def _average(self):
+        # Get weights
+        self.weights = {
+            model: _numpy.exp(
+                -0.5 * fitter.aic + len(self.data['y']) - len(fitter.data['y'])
+            )
+            for fitter, model in self.models.items()
+        } # Unnormalized weights
+        Z = sum(weight for weight, model in self.weights.items()) # Normalization factor
+        for model in weights.keys(): self.weights[model] /= Z # Normalized weights
+
+        
