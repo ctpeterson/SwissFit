@@ -44,8 +44,9 @@ class SwissFit(object):
 
         # Check if prior has been specified
         if (prior is None) and (uprior is None):
-            prior = {'I': {}}; self._prior_specified = False; 
+            prior = {}; self._prior_specified = False; 
         else: self._prior_specified = True
+        self.prior_specified = self._prior_specified
         
         # Set function for calculating log of prior
         self.calculate_logPrior = calculate_logPrior
@@ -210,6 +211,7 @@ class SwissFit(object):
             ); self.prior_fcn = {'I': self._prior_function};
         self._prior_mean = _gvar.mean(self._prior_flat)
         self._iprior_sdev = 1. / _gvar.sdev(self._prior_flat)
+        self.prior_flat = self._prior_flat
         
         """ Create space for quantities used throughout fitting process """
         # Create space for quantities that may be saved during use of object
@@ -382,8 +384,7 @@ class SwissFit(object):
     Fetch fit prediction & transform into GVar variables with appropriate
     correlations & errors as predicted from the Laplace approximation.
     Based on information from [arXiv:1406.2279] and the Lsqfit source code
-    (see "_getp" in https://github.com/gplepage/lsqfit/blob
-    /e9c9e846556abe99fc1d5770c1cf07b71ba32cd7/src/lsqfit/__init__.py#L954)
+    (see "_getp" in https://github.com/gplepage/lsqfit)
     """
         
     # Called when "SwissFit.p" called to grab fit parameters
@@ -472,6 +473,55 @@ class SwissFit(object):
         self.logml += logdet_SigmaOP - logdet_SigmaTheta
         self.logml *= -0.5
 
+    # Expectation value of chi^2 [arXiv:2209.14188]
+    def _chi2exp(self):
+        """
+        Calculation of expectation value of chi^2 from Laplace approximation.
+        Calculation outlined in "On fits to correlated and auto-correlated data"
+        by Rainer Sommer and Mattia Bruno [arXiv:2209.14188]
+        """
+
+        # Calculate projector
+        hessian_inverse = _linalg.pinv(self.calculate_hessian(self.pmean))
+        jacobian = self.calculate_jacobian(self.pmean)
+        P = _numpy.matmul(
+            jacobian,
+            _numpy.matmul(
+                hessian_inverse,
+                _numpy.transpose(jacobian)
+            )
+        )
+
+        # Get "weights"
+        W = [
+            self._icovsqrt if self._correlated_data
+            else _numpy.diag(1. / _gvar.sdev(self.data['y']))
+        ]
+        for level in self.prior.keys():
+            self._level = level
+            if self._correlated_prior: W += [self.prior_fcn[level](self._pmean)['icovroot']]
+            else: W += [_numpy.diag(self.prior_fcn[level](self._pmean)['icovroot'])]
+        W = _numpy.linalg.block_diag(*W)
+
+        # Calculate Cw
+        Cw = _numpy.matmul(W, _numpy.matmul(_gvar.evalcov(self._buf), W))
+
+        # Calculate <chi^2>
+        self.chi2exp = _numpy.trace(
+            _numpy.matmul(Cw, _numpy.identity(_numpy.shape(P)[0]) - P)
+        )
+
+        # "matrix dof"
+        #self._matrix_dof = 
+
+    # Modification of p-value that also works for uncorrelated fit [arXiv:2209.14188]
+    def _Qalt(self):
+       """
+        Calculation p-value that has meaning for "uncorrelated" fits. 
+       Outlined in "On fits to correlated and auto-correlated data"
+        by Rainer Sommer and Mattia Bruno [arXiv:2209.14188]
+        """ 
+        
     """ 
     Do parameter estimation & collect results:
 
@@ -527,7 +577,7 @@ class SwissFit(object):
 
         # AIC & Bayes factor
         k, n = len(self.pmean), len(self.data['y'])
-        self.aic = 2. * (k - self._log_likelihood(self.pmean))
+        self.aic = 2. * k + self.chi2
         #self.aic += 2. * (k**2. + k) / (n - k - 1.)
         self._log_marginal_likelihood(self.pmean)
         
