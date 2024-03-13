@@ -14,7 +14,7 @@ If you use `SwissFit`, please consider citing this repository (see "cite the rep
 
 "*The data used in this work was generated using the computing and long-term storage facilities of the USQCD Collaboration, which are funded by the Office of Science of the U.S. Department of Energy.*"
 
-If you use any other spin model data (2- & 3-state Potts, along with 4-state clock) in this repository, please acknowledge [SpinMonteCarlo.jl](https://github.com/yomichi/SpinMonteCarlo.jl).
+If you use any other spin model data in this repository (2- & 3-state Potts, along with 4-state clock), please acknowledge [SpinMonteCarlo.jl](https://github.com/yomichi/SpinMonteCarlo.jl).
 
 ## Features
 
