@@ -10,6 +10,8 @@ SwissFit is a general-purpose library for fitting models to data with Gaussian-d
 
 If you are here because you looked at "Constrained curve fitting for semi-parametric models with radial basis function networks" by Curtis Taylor Peterson and Anna Hasenfratz ([arXiv:2402.04175](https://arxiv.org/abs/2402.04175)), I have provided `Jupyter` notebooks that reproduce our results from that paper under the `examples` folder.
 
+## Acknowledgement
+
 If you use `SwissFit`, please consider citing this repository (see "cite the repository" on the right) or [arXiv:2402.04175](https://arxiv.org/abs/2402.04175). If you use our XY model data under `examples/example_data/clockinf` for your research, please acknowledge [USQCD](https://www.usqcd.org/) resources by adding the following statement to your acknowledgements.
 
 "*The data used in this work was generated using the computing and long-term storage facilities of the USQCD Collaboration, which are funded by the Office of Science of the U.S. Department of Energy.*"
