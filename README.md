@@ -6,13 +6,13 @@
   <img src="https://github.com/ctpeterson/SwissFit/blob/main/SwissFit_logo.png">
 </p>
 
-SwissFit is a general-purpose library for fitting models to data with Gaussian-distributed noise. The design of this library is inspired by Peter Lepage's [lsqfit](https://github.com/gplepage/lsqfit) and operates in a similar manner. As such, it builds on top of the [GVar](https://github.com/gplepage/gvar) library and extensively utilizes the powerful numerical tools of [SciPy](https://scipy.org/) and [Scikit-learn](https://scikit-learn.org/stable/). SwissFit is readily deployable; however, it is under active development.
+SwissFit is a general-purpose library for fitting models to data with Gaussian-distributed noise. The design of this library is inspired by Peter Lepage's [lsqfit](https://github.com/gplepage/lsqfit) and operates in a similar manner. As such, it builds on top of the [GVar](https://github.com/gplepage/gvar) library and extensively utilizes the powerful numerical tools of [SciPy](https://scipy.org/) and [Vegas](https://github.com/gplepage/vegas). SwissFit is readily deployable; however, it is under active development. The current version is in beta status; as such, please consider it an "early release".
 
-If you are here because you looked at "Constrained curve fitting for semi-parametric models with radial basis function networks" by Curtis Taylor Peterson and Anna Hasenfratz ([arXiv:2402.04175](https://arxiv.org/abs/2402.04175)), I have provided `Jupyter` notebooks that reproduce our results from that paper under the `examples` folder.
+If you are here because you looked at "Constrained curve fitting for semi-parametric models with radial basis function networks" by Curtis Taylor Peterson and Anna Hasenfratz ([arXiv:2402.04175](https://arxiv.org/abs/2402.04175)), I have provided `Jupyter` notebooks that reproduce our results from that paper under the `examples` folder. These examples will work with v0.1 of SwissFit, which is downloadable under the "releases" tab.
 
 ## Acknowledgement
 
-If you use `SwissFit`, please consider citing this repository (see "cite the repository" on the right) or [arXiv:2402.04175](https://arxiv.org/abs/2402.04175). If you use our XY model data under `examples/example_data/clockinf` for your research, please acknowledge [USQCD](https://www.usqcd.org/) resources by adding the following statement to your acknowledgements.
+If you use `SwissFit`, please consider citing this repository (see "cite the repository" on the right) or [arXiv:2402.04175](https://arxiv.org/abs/2402.04175). If you use our XY model data under `examples/v0p1/example_data/clockinf` for your research, please acknowledge [USQCD](https://www.usqcd.org/) resources by adding the following statement to your acknowledgements.
 
 "*The data used in this work was generated using the computing and long-term storage facilities of the USQCD Collaboration, which are funded by the Office of Science of the U.S. Department of Energy.*"
 
@@ -22,20 +22,20 @@ If you use any other spin model data in this repository (2- & 3-state Potts, alo
 
 `SwissFit` currently supports the following.
 
-  - [lsqfit](https://github.com/gplepage/lsqfit)-style least squares fitting (`examples/simple_fit.ipynb`), including priors. Priors can be transformed to represent some constraints. Quality of fit and model selection criteria directly available from fit.
+  - [lsqfit](https://github.com/gplepage/lsqfit)-style least squares fitting, including priors. Priors can be transformed to represent constraints. Quality of fit and model selection criteria directly available from fit.
   - Fully integrated with [GVar](https://github.com/gplepage/gvar), which allows fit parameters to be propagated into a secondary analysis with full automatic error propagation
-  - Support for integrating radial basis function networks (`examples/simple_radial_basis_function_fit.ipynb`) and feedforward neural networks (example notebook coming soon) in least-squares model function
-  - Optimization with [SciPy](https://scipy.org/)'s trust region reflective local optimization algorithm (`examples/simple_fit.ipynb`) and/or [SciPy](https://scipy.org/)'s basin hopping global optimization algorithm (`examples/simple_radial_basis_function_fit.ipynb`)
-  - Basic support for surrogate-based empirical Bayes ([arXiv:2402.04175](https://arxiv.org/abs/2402.04175); see any of the notebooks under `examples` that reproduce the results from that paper).
+  - Support for integrating radial basis function networks and feedforward neural networks in least-squares model function
+  - Optimization with [SciPy](https://scipy.org/)'s least_squares optimization methods (trust region reflective, Levenberg-Marquardt, dogbox), [SciPy](https://scipy.org/)'s "minimize" local optimization methods (BFGS, Nelder-Mead, conjugate gradient, etc.), and [SciPy](https://scipy.org/)'s basin hopping global optimization algorithm
+  - Markov Chain Monte Carlo (MCMC-based) parameter estimation via Peter Lepage's [Vegas](https://github.com/gplepage/vegas) library
+  - Basic support for surrogate-based empirical Bayes ([arXiv:2402.04175](https://arxiv.org/abs/2402.04175)
 
 The following are planned or already in the works for `SwissFit`
 
-  - Documentation! My apologies for the current lack of documentation. Once I finish my Ph.D. defense in April of 2024, you can expect proper documentation.
-  - Optimization with [SciPy](https://scipy.org/) `minimize` for local optimization and [SciPy](https://scipy.org/)'s various global optimization algorithms
+  - Proper documentation
   - Optimization with stochastic gradient descent, specifically Adam and its Nesterov-accelerated counterpart
+  - Options for other Markov Chain Monte Carlo algorithms, such as Hamiltonian Monte Carlo
   - Empirical Bayes via [Scikit-learn](https://scikit-learn.org/stable/)'s Bayesian optimization module
-  - Model parameter estimation by direct sampling of posterior distributions
-  - Extended support for hierarchical Bayesian modelling
+  - Tools for Bayesian model averaging
 
 `SwissFit` is currently in beta. Help us get to a v1.0.0 release by providing feedback and letting me know if you run into problems! Thank you for considering to use `SwissFit` for whatever problem that you are trying to tackle!
 
@@ -46,13 +46,14 @@ The following are planned or already in the works for `SwissFit`
   - [SciPy](https://scipy.org/)
   - [Scikit-learn](https://scikit-learn.org/stable/)
   - [GVar](https://github.com/gplepage/gvar)
+  - [Vegas](https://github.com/gplepage/vegas)
   - [Matplotlib](https://github.com/matplotlib/matplotlib)
 
 All versions of the above libraries should at least be compatible with `Python>=3.10`. Library dependencies are automatically installed.
 
 ## Installation
 
-SwissFit will be uploaded to PyPI for simple installation in the near future. For now, install SwissFit as follows. First, clone this repository into whatever folder that you wish. Then `cd` into your cloned directory for SwissFit and install by running `setup.py` as
+SwissFit will be uploaded to PyPI for simple installation sometime in the near future. For now, install SwissFit as follows. First, clone this repository into whatever folder that you wish. Then `cd` into your cloned directory for SwissFit and install by running `setup.py` as
 ```
 python3 setup.py install
 ```
@@ -66,7 +67,7 @@ with $a=2.0$ and $b=0.5$. First, let's import everything that we'll need.
 ```
 """ SwissFit imports """
 from swissfit import fit # SwissFit fitter
-from swissfit.optimizers import scipy_least_squares # SciPy's trust region reflective
+from swissfit.optimizers import scipy_least_squares # SciPy's least squares methods
 
 """ Other imports """
 import gvar as gvar # Peter Lepage's GVar library
@@ -124,7 +125,7 @@ fitter = fit.SwissFit(
 ```
 To fit to data, we also need to create an optimizer object. We do so by passing the SwissFit object through the optimizer object's constructor.
 ```
-optimizer = scipy_least_squares.SciPyLeastSquares(fitter = fitter)
+optimizer = scipy_least_squares.SciPyLeastSquares()
 ```
 Now we are ready to fit. It is as simple as passing the SwissFit optimizer object through the call method of the SwissFit object
 ```
@@ -140,7 +141,7 @@ The output of print is:
 SwissFit: 🧀
    chi2/dof [dof] = 1.04 [20]   Q = 0.41   (Bayes) 
    chi2/dof [dof] = 1.15 [18]   Q = 0.3   (freq.) 
-   AIC [k] = 24.63 [2]   logML = 7.511*
+   AIC [k] = 24.85 [2]   logML = 7.511*
 
 Parameters*:
      c
@@ -148,8 +149,14 @@ Parameters*:
              2                 0.4990(21)   [0.75(75)]
 
 Estimator:
-   SwissFit optimizer object
-*Laplace approximation
+   algorithm = SciPy least squares
+   fun = 10.427412170606441
+   optimality = 0.0017098526837675543
+   nfev = 16
+   njev = 14
+   status = 2
+   message = `ftol` termination condition is satisfied.
+   success = True
 ```
 We can also grab many quality of fit & information criteria directly from `fitter` as follows.
 ```
@@ -239,184 +246,41 @@ This produces the following figure.
 <p align="center">
   <img src="https://github.com/ctpeterson/SwissFit/blob/main/simple_fit.png">
 </p>
-More realistic examples can be found under the `examples` folder. 
 
-## Basic fit with a radial basis function network
+## Markov Chain Monte Carlo estimation
 
-Let's try and interpolate over the sine function from `examples/simple_fit.ipynb` with a radial basis function network (RBFN). The sine function is
-$$f(x) = a\sin(bx),$$
-with $a=2.0$ and $b=0.5$. First, let's import everything we need.
+The example above estimates the mean and covariance of fit parameters via maximum a posteriori estimation (MAP). The MAP estimate for the mean can be poor because what we are calculating is really the posterior mode. Alternatively, we can estimate the mean of the fit parameters by sampling directly from the posterior. SwissFit has budding support for this kind of parameter estimation, which currently only supports sampling via the Vegas algorithm (see [arXiv:2009.05112](https://arxiv.org/abs/2009.05112) for details). The infrastructure for sampling with Vegas is provided by Peter Lepage's [Vegas](https://github.com/gplepage/vegas) library. MCMC estimation with SwissFit is simple and follows essentially the same steps as the MAP estimation example above. Simply replace
 ```
-""" SwissFit imports """
-from swissfit import fit # SwissFit fitter
-from swissfit.optimizers import scipy_basin_hopping # Basin hopping global optimizer
-from swissfit.optimizers import scipy_least_squares # Trust region reflective local optimizer
-from swissfit.machine_learning import radial_basis # Module for radial basis function network
+from swissfit.optimizers import scipy_least_squares
 
-""" Other imports """
-import gvar as gvar # Peter Lepage's GVar library
-import numpy as np # NumPy
-```
-So that we have something to fit to, let's create an artificial dataset. We do so in the next block.
-```
-# Parameters of the sine function & the error
-a, b, error = 2.0, 0.5, 0.1
+...
 
-# Actual parameters of the sine function
-real_fit_parameters = {'c': [a, b]}
+optimizer = scipy_least_squares.SciPyLeastSquares()
+fitter(optimizer)
+```
+with
+```
+from swissfit.monte_carlo import vegas as vegas_lepage
 
-# Real dataset
-np.random.seed(0) # Seed random number generator
-data = {} # Dictionary to hold data
+...
 
-# Input data
-data['x'] = np.linspace(0., 2. * np.pi / b, 20)
-
-# Output data
-data['y'] = [
-    gvar.gvar(
-        np.random.normal(a * np.sin(b * xx), error), # Random mean
-        error # Error on mean
-    )
-    for xx in data['x']
-]
+estimator = vegas_lepage.VegasLepage()
+fitter(estimator)
 ```
-Next, let's create a radial basis function network. We do so by first specifying the topology of the RBFN. The following RBFN will have two nodes in its hidden layer.
-```
-network_topology = {
-    'lyr1': { # Hidden layer
-        'in': 1, 'out': 2, # Dimension of input & output
-        'activation': 'exp', # Exponential activation
-    },
-    'lyr2': { # Output layer
-        'in': 2, 'out': 1,
-        'activation': 'linear' # Linear activation
-    }
-}
-```
-In `SwissFit`, we create a RBFN by passing the above dictionary to a `RadialBasisFunctionNeuralNetwork` object constructor as follows.
-```
-# Create radial basis function network
-neural_network = radial_basis.RadialBasisNeuralNetwork(network_topology)
-
-# Initialize radial basis function network parameters
-p0 = neural_network.initialize_parameters(initialization = 'zero', p0 = {})
-```
-That's it! Now let's define our fit function using the instance of the `RadialBasisFunctioNeuralNetwork` class that we just created.
-```
-def fit_fcn(x, p):
-    return np.ravel(neural_network.out(x, p))
-```
-Now that we have our fit function, let's go ahead and fit. Because the loss landscape is much more complicated than it is in examples/simple_fit.ipynb, we will use a global optimizer. Everything else is exactly the same.
-```
-# Basin hopping parameters
-niter_success = 200 # Number of iterations with same best fit parameters for basin hopping to "converge"
-niter = 10000 # Upper bound on total number of basin hopping iterations
-T = 1. # Temperature hyperparameter for basin hopping
-
-# Create SwissFit fit object
-fitter = fit.SwissFit(
-    udata = data, # Fit data; "data = data" is also acceptable - "udata" means "uncorrelated"
-    p0 = p0, # Starting values for parameters,
-    fit_fcn = fit_fcn, # Fit function
-)
-
-# Create trust region reflective local optimizer from SciPy - fitter will save reference to local_optimizer for basin hopping
-local_optimizer = scipy_least_squares.SciPyLeastSquares(fitter = fitter)
-
-# Basin hopping global optimizer object instantiation
-global_optimizer = scipy_basin_hopping.BasinHopping(
-    fitter = fitter, # Fit function is the "calculate_residual" method of fitter object
-    optimizer_arguments = {
-        'niter_success': niter_success,
-        'niter': niter,
-        'T': T
-    }
-)
-```
-Let's fit!
-```
-# Do fit
-fitter(global_optimizer)
-
-# Print result of fit
-print(fitter)
-
-# Save fit parameters
-fit_parameters = fitter.p
-```
-The output of `print(fitter)` is
+Everything else is the same, including printing out information about the fit. The printout should look like the following. Note, however, that SwissFit does not currently calculate the correlation between the fit parameters and the underlying dataset for MCMC-based estimates of the fit parameters. I hope to alleviate this deficit in the future.
 ```
 SwissFit: 🧀
-   chi2/dof [dof] = 0.73 [13]   Q = 0.74   (Bayes) 
-   chi2/dof [dof] = 0.73 [13]   Q = 0.74   (freq.) 
-   AIC [k] = 23.44 [7]   logML = 8.846*
+   chi2/dof [dof] = 1.04 [20]   Q = 0.41   (Bayes) 
+   chi2/dof [dof] = 1.15 [18]   Q = 0.3   (freq.) 
+   AIC [k] = 24.86 [2]   logML = 7.5247(23)
 
-Parameters*:
-     lyr1.center
-             1                  14.0(1.5)   [n/a]
-             2                  3.074(42)   [n/a]
-     lyr1.bandwidth
-             1                   0.09(10)   [n/a]
-             2                 -0.047(19)   [n/a]
-     lyr2.weight
-             1                   3.8(2.5)   [n/a]
-             2                   5.4(1.7)   [n/a]
-     lyr2.bias
-             1                  -3.3(1.7)   [n/a]
+Parameters:
+     c
+             1                  2.006(33)   [1.5(1.5)]
+             2                 0.4990(21)   [0.75(75)]
 
 Estimator:
-   algorithm = SciPy basin hopping
-   minimization_failures = 9
-   nfev = 22139
-   njev = 18175
-   fun = 4.720701592800511
-   message = ['success condition satisfied']
-   nit = 510
-   success = True
-
-*Laplace approximation
+   algorithm = Peter Lepage's Vegas++
+   nitn = 10 (adapt) 
+   nitn = 10 (MCMC)
 ```
-Let's visualize what our fit looks like.
-```
-# Import Matplotlib
-import matplotlib.pyplot as plt
-
-# Plot fit data
-plt.errorbar(
-    data['x'], 
-    gvar.mean(data['y']), 
-    gvar.sdev(data['y']), 
-    color = 'k', markerfacecolor = 'none',
-    markeredgecolor = 'k',
-    capsize = 6., fmt = 'o',
-    label = 'data'
-)
-
-# Get result of fit function
-x = np.linspace(data['x'][0], data['x'][-1], 100)
-y = fit_fcn(x, fit_parameters)
-
-# Plot error of fit function from fit as a colored band
-plt.fill_between(
-    x,
-    gvar.mean(y) - gvar.sdev(y),
-    gvar.mean(y) + gvar.sdev(y),
-    color = 'maroon', alpha = 0.5,
-    label = 'RBFN'
-)
-
-# x/y label
-plt.xlabel('x', fontsize = 20.)
-plt.ylabel('$a\\sin(bx)$', fontsize = 20.)
-
-# Show legend
-plt.legend()
-
-# Grid
-plt.grid('on')
-```
-The output of the code above is
-<p align="center">
-  <img src="https://github.com/ctpeterson/SwissFit/blob/main/simple_rbfn_fit.png">
-</p>
