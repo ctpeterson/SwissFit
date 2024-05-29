@@ -1,5 +1,6 @@
 scipy
 scikit-learn
 gvar
+vegas
 numpy
 matplotlib
