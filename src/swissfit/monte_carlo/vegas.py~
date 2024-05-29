@@ -1,0 +1,5 @@
+from .montecarlo import MonteCarlo as _MonteCarlo
+
+class Vegas(object):
+    def __init__(self):
+        

@@ -38,38 +38,33 @@ def scipy_least_squares(fcn, x0, **kwargs):
         
 """ Least squares class """
 class SciPyLeastSquares(_Optimizer):
-    def __init__(self,
-                 fitter = None,
-                 fcn = None,
-                 jac = None,
-                 tolerance_schedule = None,
-                 optimizer_arguments = {}
-                 ):
-        # Initialize optimizer object
-        super().__init__(
-            fcn = fcn if fitter is None else fitter.calculate_residual,
-            jac = jac if fitter is None else fitter.calculate_jacobian,
-            optimizer_arguments = optimizer_arguments
-        )
-
-        # Take care of defaults if fitter specified
-        if fitter is not None:
-            fitter.local_optimizer = self.scipy_least_squares
-            fitter.local_optimizer_tag = 'scipy_least_squares'
-            
+    def __init__(self, optimizer_arguments = {}):
+        super().__init__(optimizer_arguments = optimizer_arguments)
+        self.tag = 'scipy_least_squares'
+ 
     # Run SciPy least squares optimization on call
-    def __call__(self, p0):
-        return scipy_least_squares(
-            self._fcn, p0,
-            jac = self._jac,
-            **self._args
-        )
+    def __call__(self, p0, fcn, jac):
+        self.fit = scipy_least_squares(fcn, p0, jac = jac, **self._args)
+        return self.fit
 
-    # Wrapper method (alternative to call - discards kwargs)
+    # Wrapper method (alternative to call)
     def scipy_least_squares(self, fcn, x0, **kwargs):
         self._args['jac'] = self._jac
         for key in kwargs.keys():
             if key not in self._args.keys():
                 self._args[key] = kwargs[key]
-        return scipy_least_squares(fcn, x0, **self._args)
+        self.fit = scipy_least_squares(fcn, x0, **self._args)
+        return self.fit
+
+    # Returns information about fit as string
+    def __str__(self):
+        out = 3 * ' ' + 'algorithm = SciPy least squares\n'
+        for key, item in self.fit.items():
+            unwanteds = [
+                'x', 'lowest_optimization_result', 'jac',
+                'cost', 'grad', 'active_mask'
+            ]
+            if all(unwanted not in key for unwanted in unwanteds):
+                out += 3 * ' ' + key + ' = ' + str(item) + '\n'
+        return out
         

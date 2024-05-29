@@ -23,7 +23,9 @@ setup(
         'swissfit/machine_learning',
         'swissfit/optimizers',
         'swissfit/other_tools',
-        'swissfit/empirical_bayes'
+        'swissfit/empirical_bayes',
+        'swissfit/model_averaging',
+        'swissfit/monte_carlo'
     ], 
     version = VERSION,
     

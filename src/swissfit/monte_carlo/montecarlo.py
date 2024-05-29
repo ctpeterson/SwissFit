@@ -5,14 +5,13 @@ import gvar as _gvar # For converting MC data to GVar variables
 # Monte Carlo base class
 class MonteCarlo(object):
     def __init__(self,
-                 fcn = None,
-                 jac = None,
                  mode = None,
                  monte_carlo_arguments = None
                  ):
-        self._fcn, self._jac = fcn, jac
         self._args = monte_carlo_arguments
         self._mode = mode
+        self.method = 'MCMC'
+        self.local_estimator = 'none'
 
     """
     Multivariate autocorrelation time:

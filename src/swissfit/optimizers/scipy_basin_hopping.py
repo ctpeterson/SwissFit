@@ -46,42 +46,33 @@ class BasinHopping(_Optimizer):
         having a high tolerance is absolutely unnecessary at best and computationally 
         prohibitive at worst.
     """
-    def __init__(self,
-                 fitter = None,
-                 fcn = None,
-                 optimizer_arguments = {}
-                 ):
-        # Take care of defaults if fitter specified
-        if (fitter is not None) and hasattr(fitter, 'local_optimizer_tag'):
-            if 'minimizer_kwargs' not in optimizer_arguments:
-                optimizer_arguments['minimizer_kwargs'] = {'method': fitter.local_optimizer}
-            if fitter.local_optimizer_tag == 'scipy_least_squares': fcn = fitter.calculate_residual
-            elif fitter.local_optimizer_tag == 'scipy_minimize': fcn = fitter.calculate_chi2
-        if fitter is not None:
-            fitter.global_optimizer = self.basin_hopping
-            fitter.global_optimizer_tag = 'basin_hopping'
+    def __init__(self, optimizer_arguments = {}, local_estimator = None):
+        super().__init__(optimizer_arguments = optimizer_arguments)
+        self.tag = 'scipy_basin_hopping'
+        if local_estimator is not None: self.set_local_optimizer(local_estimator)
 
-        # Initialize optimizer object
-        super().__init__(
-            fcn = fcn,
-            optimizer_arguments = optimizer_arguments
-        )
-    
-    def __call__(self, p0):
-        self.fit = _optimize.basinhopping(self._fcn, p0, **self._args)
-        self._prepare_out_string(); return self.fit;
+    # Sets local optimizer according to specifications from SwissFit estimator object
+    def set_local_optimizer(self, estimator):
+        self.local_estimator = estimator
+        if self.local_estimator.tag == 'scipy_least_squares':
+            self._args['minimizer_kwargs'] = {'method': self.local_estimator.scipy_least_squares}
 
+    # Run SciPy basin hopping on call
+    def __call__(self, p0, fcn, jac):
+        self.local_estimator.set_jac(jac)
+        self.fit = _optimize.basinhopping(fcn, p0, **self._args)
+        return self.fit
+
+    # Wrapper method (alternative to call - discards kwargs)
     def basin_hopping(self, func, x0, **kwargs):
         for key in kwargs.keys():
-            if key not in self._args.keys():
-                self._args[key] = kwargs[key]
+            if key not in self._args.keys(): self._args[key] = kwargs[key]
         return _optimize.basinhopping(func, x0, **self._args)
 
-    def _prepare_out_string(self):
-        self._out = 3 * ' ' + 'algorithm = SciPy basin hopping\n'
+    # Returns information about fit as string
+    def __str__(self):
+        out = 3 * ' ' + 'algorithm = SciPy basin hopping\n'
         for key, item in self.fit.items():
             if all(unwanted not in key for unwanted in ['x', 'lowest_optimization_result']):
-                self._out += 3 * ' ' + key + ' = ' + str(item) + '\n'
-    
-    def __str__(self): return self._out
-        
+                out += 3 * ' ' + key + ' = ' + str(item) + '\n'
+        return out

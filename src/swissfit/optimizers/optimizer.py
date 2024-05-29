@@ -10,18 +10,20 @@ class MockSerialPool(object):
 # Parent class for optimizers
 class Optimizer(object):
     def __init__(self,
-                 fcn = None,
                  optimizer_arguments = None,
-                 jac = None,
-                 hess = None,
                  bounds = None,
                  pool = None):
-        self._fcn, self._jac, self._hess = fcn, jac, hess
         self._args = optimizer_arguments
         self._pool = MockSerialPool() if pool is None else pool
         self._bounds = bounds
+        self.method = 'MAP'
+        self.local_optimizer = 'none'
         return None
 
+    def set_jac(self, jac): self._jac = jac
+    def set_fcn(self, fcn): self._fcn = fcn
+    def set_hess(self, hess): self._hess = hess
+    
     def create_bounds(self,
                       p = None,
                       standard_deviations = 1.,
@@ -56,5 +58,5 @@ class Optimizer(object):
             case _: print('Invalid option for result_type.',
                           'Must be:', "'seq',", 'or', "'scipy_bounds'")
 
-
-    def __str__(self): return 3 * ' ' + 'SwissFit optimizer object'
+    def __str__(self):
+        return 3 * ' ' + 'SwissFit optimizer object'
