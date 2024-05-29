@@ -57,7 +57,7 @@ SwissFit will be uploaded to PyPI for simple installation sometime in the near f
 ```
 python3 setup.py install
 ```
-That's all. The `setup.py` script will install SwissFit for you, along with all of SwissFit's dependences; namely, [Numpy](https://github.com/numpy/numpy), [SciPy](https://scipy.org/), [Scikit-learn](https://scikit-learn.org/stable/), [GVar](https://github.com/gplepage/gvar), and [Matplotlib](https://github.com/matplotlib/matplotlib).
+That's all. The `setup.py` script will install SwissFit for you, along with all of SwissFit's dependences; namely, [Numpy](https://github.com/numpy/numpy), [SciPy](https://scipy.org/), [Scikit-learn](https://scikit-learn.org/stable/), [GVar](https://github.com/gplepage/gvar), [Vegas](https://github.com/gplepage/vegas), and [Matplotlib](https://github.com/matplotlib/matplotlib).
 
 ## Basic example usage
 
