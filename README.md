@@ -188,7 +188,7 @@ p-value: 0.40572144469143007
 marginal likelihood: 7.511209597426163 
 Akaike information criterion: 24.628697369539452
 ```
-Because the output of `fitter.p` are correlated [GVar](https://github.com/gplepage/gvar) variables, we can pass these parameters through any function that we want and get an output with Gaussian errors fully propagated through. For example, we could calculate `f(0.5)` and `f(1.0)`, along with the their covariance
+Because the output of `fitter.p` are correlated [GVar](https://github.com/gplepage/gvar) variables, we can pass these parameters through any function that we want and get an output with Gaussian errors fully propagated through. For example, we could calculate `f(0.5)` and `f(1.0)`, along with their covariance
 ```
 # Calculate f(0.5, f(1.0)
 fa = sin(0.5, fit_parameters)
