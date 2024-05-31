@@ -129,7 +129,7 @@ fitter = fit.SwissFit(
     fit_fcn = sin,
 )
 ```
-To fit to data, we also need to create an optimizer object. We do so by passing the SwissFit object through the optimizer object's constructor.
+To fit to data, we also need to create an optimizer object:
 ```
 optimizer = scipy_least_squares.SciPyLeastSquares()
 ```
