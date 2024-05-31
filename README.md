@@ -33,7 +33,7 @@ If you use any other spin model data in this repository (2- & 3-state Potts, alo
   - Support for integrating radial basis function networks and feedforward neural networks in least-squares model function
   - Optimization with [SciPy](https://scipy.org/)'s least_squares optimization methods (trust region reflective, Levenberg-Marquardt, dogbox), [SciPy](https://scipy.org/)'s "minimize" local optimization methods (BFGS, Nelder-Mead, conjugate gradient, etc.), and [SciPy](https://scipy.org/)'s basin hopping global optimization algorithm
   - Markov Chain Monte Carlo (MCMC-based) parameter estimation via Peter Lepage's [Vegas](https://github.com/gplepage/vegas) library
-  - Basic support for surrogate-based empirical Bayes ([arXiv:2402.04175](https://arxiv.org/abs/2402.04175)
+  - Basic support for surrogate-based empirical Bayes ([arXiv:2402.04175](https://arxiv.org/abs/2402.04175))
 
 The following are planned or already in the works for `SwissFit`
 
