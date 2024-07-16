@@ -264,6 +264,7 @@ class SwissFit(Fitter):
              approximate_parameter_covariance = True
              ):
         self.call(estimator, p0 = p0, p = p, approx_cov = approximate_parameter_covariance)
+        return self
         
     # Prepare data, prior, and functions
         
@@ -342,9 +343,11 @@ class SwissFit(Fitter):
 
         # Calculate prefactor for PDF
         self._logpdf_prefac = (2. * _numpy.pi)**len(self.data['y'])
-        self._logpdf_prefac *= (2. * _numpy.pi)**len(self.prior_flat)
+        if self._prior_specified:
+            self._logpdf_prefac *= (2. * _numpy.pi)**len(self.prior_flat)
         self._logpdf_prefac *= _det(_gvar.evalcov(self.data['y']))
-        self._logpdf_prefac *= _det(_gvar.evalcov(self.prior_flat))
+        if self._prior_specified:
+            self._logpdf_prefac *= _det(_gvar.evalcov(self.prior_flat))
         self._logpdf_prefac = 1. / _numpy.sqrt(self._logpdf_prefac)
         self._logpdf_prefac = _numpy.log(self._logpdf_prefac)
         
@@ -621,7 +624,7 @@ class SwissFit(Fitter):
         return _numpy.dot(residual, residual)
         
     # Augmented chi2
-    def _chi2(self): return self.calculate_chi2(self.pmean)
+    def _chi2(self): return self.calculate_chi2(self.pmean, return_chi2 = True)
 
     # "Frequentist dof"
     def _frequentist_dof(self): return len(self.data['y']) - len(self.pmean)
@@ -665,36 +668,28 @@ class SwissFit(Fitter):
         elif (self._estimator.method == 'MCMC'):
             return _gvar.evalcov([p for pkey, ps in self._estimator.p.items() for p in ps])
     
-    def _p(self): # arXiv:1406.2279
+    def _p(self): # arXiv:1406.2279 & github.com/gplepage/lsqfit
         if (self._estimator.method == 'MAP') or (self._estimator.method == 'none'):
             # Create buffer
             if not self._prior_specified: buf = (_numpy.array(self.data['y']).flat[:])
             else:
                 buf = (_numpy.array(self.data['y']).flat, _numpy.array(self.prior_flat).flat)
                 buf = (_numpy.concatenate(buf))
-            
-            # Calculate components of dp/dy
-            pcov = self._cov() # Parameter covariance
+                
+            # Calculate dp/dy ****
             dfdp = _numpy.transpose(self.calculate_jacobian(self.pmean)) # df/dp
             dcov = _linalg.cov_inv_SVD(_gvar.evalcov(buf), square_root = True) # Data covariance
+            dpdy = self._cov() @ dfdp @ dcov
 
-            # Calculate dp/dy
-            dpdy = pcov @ dfdp @ dcov
-
-            # Collect fit parameters into GVars
+            # Collect parameters & return
             p = []
-            for index in range(dpdy.shape[0]):
-                mean = self.pmean[index]
-                deriv = _gvar.wsum_der(dpdy[index], buf)
-                buffer_cov = buf[0].cov
-                p.append(_gvar.gvar(mean, deriv, buffer_cov))
-
-            # Return p as a diectionary
-            return self.map_keys(p, return_parameters = True)
+            for pv,drv in zip(self.pmean, dpdy):
+                p.append(_gvar.gvar(pv, _gvar.wsum_der(drv, buf), buf[0].cov))
+            return self.map_keys(p, return_parameters = True).copy()
         elif self._estimator.method == 'MCMC':
             match self._estimator.tag:
                 case 'vegas_peter_lepage': return self._estimator.p
-        
+    
     # Define calls to these functions as SwissFit properties
     chi2_data = property(_chi2_data)
     chi2_prior = property(_chi2_prior)
@@ -735,16 +730,16 @@ class SwissFit(Fitter):
 
         # AIC & marginal likelihood
         out += lbr + 'AIC [k] = ' + str(round(self._aic(), 2))
-        out += ' [' + str(len(self.pmean)) + ']'
+        out += '* [' + str(len(self.pmean)) + ']'
         if (self._estimator.method == 'MAP') or (self._estimator.method == 'none'):
-            out += lbr + 'logML = ' + str(round(self._logml(), 3)) + '*\n'
+            out += lbr + 'logML = ' + str(round(self._logml(), 3)) + '**\n'
         elif (self._estimator.method == 'MCMC'):
             out += lbr + 'logML = ' + str(self._logml()) + '\n'
             
         # Get ready to show parameters
         out += '\n' + 'Parameters'
         if (self._estimator.method == 'MAP') or (self._estimator.method == 'none'):
-            out += '*'
+            out += '**'
         out += ':\n'
 
         # Fit parameters
@@ -770,8 +765,9 @@ class SwissFit(Fitter):
         if hasattr(self._estimator, '__str__'):
             out += '\n' + 'Estimator:\n'
             out += str(self._estimator)
+        out += '\n' + '*chi^2 + 2 X "# parameters"\n'
         if (self._estimator.method == 'MAP') or (self._estimator.method == 'none'):
-            out += '\n' + '*Laplace approximation\n'
+            out += '**Laplace approximation\n'
 
         # Return out string
         return out
