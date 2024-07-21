@@ -1,2 +1,0 @@
-from scipy import optimize as _optimize # SciPy optimize
-from .optimizer import Optimizer as _Optimizer # Optimizer parent class
