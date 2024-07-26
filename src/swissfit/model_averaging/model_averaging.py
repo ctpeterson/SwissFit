@@ -1,160 +1,146 @@
-import numpy as _numpy # Number crunching
-import gvar as _gvar # Gaussian error propagation
-import warnings as _warnings # For warning user if something could be a problem
+import typing
+from collections.abc import Callable
+import numpy as _numpy
+import gvar as _gvar
+import gc as _gc
+from functools import partial as _partial
+from .. import fit as _swissfit
 
-# Class implementing Bayesian model averaging
-class BayesianModelAveraging(object):
+def _flatten(dct, pk = tuple()):
+    x = []
+    for k,kv in dct.items():
+        nk = pk + (k,) if pk else (k,)
+        is_swissfit = isinstance(kv, _swissfit.SwissFit)
+        is_dct = isinstance(kv, dict) or isinstance(kv, _gvar.BufferDict)
+        if (not is_swissfit) and (is_dct):
+            x.extend(_flatten(kv, pk = nk).items())
+        else: x.append((nk,kv))
+    return _gvar.BufferDict(x)
+
+def _expand(dct, x = {}, pk = tuple(), kk = tuple()):
+    if not kk:
+        for k in dct.keys():
+            if k[0] not in x: x[k[0]] = {}
+            _expand(dct,x=x[k[0]],pk=k[1:],kk=k)
+        return x
+    else:
+        if len(pk) == 1: x.append(dct[kk])
+        if len(pk) == 2:
+            if pk[0] not in x: x[pk[0]] = []
+            _expand(dct,x=x[pk[0]],pk=pk[1:],kk=kk)
+        elif len(pk) > 2: 
+            if pk[0] not in x: x[pk[0]] = {}
+            _expand(dct,x=x[pk[0]],pk=pk[1:],kk=kk)
+
+class BayesianModelAveraging(object): 
     def __init__(
             self,
-            data = {},
-            models = {},
-            parameter_locations = {},
+            models: list[dict[str,any]] | list[_swissfit.SwissFit] = None,
+            ydata: list[any] = None,
+            parameter_directive: Callable[[dict[str,any]],dict[str,any]] = None,
+            ic: str = None,
+            custom_ic: Callable[[_swissfit.SwissFit],float] = None,
+            ic_kwargs: dict[str,any] = {},
     ):
-        # Get inputs
-        self.parameter_locations = parameter_locations
-        self.models = models
-        self.data = data
+        self._is_list = True
+        if models is not None:
+            if not isinstance(models[0],_swissfit.SwissFit):
+                self._models = [_flatten(m) for m in models]
+                self._is_list = False
+            else: self._models = [{('p',): f} for f in models]
+        else: _swissfit.SwissFitException('Must specify models')
 
-        # Do model-averaging
-        self._average()
-        
-    # For grabbing mean & covariance
-    def _average(self):
-        # Get weights
-        self.weights = {
-            model: _numpy.exp(
-                -0.5 * fitter.aic + len(self.data['y']) - len(fitter.data['y'])
-            )
-            for model, fitter in self.models.items()
-        } # Unnormalized weights
-        Z = sum(weight for model, weight in self.weights.items()) # Normalization factor
-        for model in self.weights.keys(): self.weights[model] /= Z # Normalized weights
-        weight_array = [weight for weight_key, weight in self.weights.items()]
-        
-        # Determine if parameters are hierarchical
-        if 'I' not in self.parameter_locations.keys(): self._hierarchical = False
-        else: self._hierarchical = True
+        if ydata is not None: 
+            if isinstance(ydata,dict): self.data = _flatten(ydata)
+            elif isinstance(ydata,int): 
+                self.data = [None for _ in range(ydata)]
+            else: self.data = ydata
+        else: self.data = None
 
-        # Create information to map from array back into dictionary
-        self._p = {}; self._lngths = {}; size = 0;
-        if self._hierarchical:
-            for level in self.parameter_locations.keys():
-                self._lngths[level] = {}; self._p[level] = {};
-                for key in self.parameter_locations[level].keys():
-                    self._p[level][key] = self.parameter_locations[level][key]
-                    self._lngths[level][key] = [size, size + len(self._p[level][key])]
-                    size += len(self._p[level][key])
-        else:
-            for key in self.parameter_locations.keys():
-                self._p[key] = self.parameter_locations[key]
-                self._lngths[key] = [size, size + len(self._p[key])]
-                size += len(self._p[key])
+        if parameter_directive is None: self._pd = lambda x: x
+        else: self._pd = parameter_directive
 
-        # Check if input data are primary variables
-        if all(_gvar.is_primary(self.data['y'])) and all(
-                _gvar.is_primary(prior) for model, fitter in self.models.items()
-                for prior in fitter.prior_flat): primary = True
-        else:
-            # Print warning
-            _warnings.warn(
-                "Some or all of data/priors are not primary GVar variables. " + \
-                "Model-averaged parameters will not know about their " + \
-                "correlations with either."
-            )
-            
-            # Set primary to false
-            primary = False
-        
-        # Save model properties
-        model_property_dictionary = {}
-        for model, fitter in self.models.items():
-            # Get model parameters as dictionary
-            parameters = fitter.p
-            model_property_dictionary[model] = {}
+        if all(x is None for x in [ic,custom_ic]): self._ic = 'aic'
+        else: self._ic = ic
+        self._custom_ic = custom_ic
+        self._ic_kwargs = ic_kwargs
 
-            # Convert dictionary to flat array
-            if self._hierarchical:
-                model_parameter_array = [
-                    _numpy.array(parameters[level][key])[index]
-                    for level in parameters.keys()
-                    for key, indices in self.parameter_locations[level].items()
-                    for index in indices
-                ]
-            else:
-                model_parameter_array = [
-                    _numpy.array(parameters[key])[index]
-                    for key, indices in self.parameter_locations.items()
-                    for index in indices
-                ]
+    def _wght(self, fit, data):
+        match self._ic:
+            case 'logml'|'logML'|'ml'|'ML'|'bf'|'BF': 
+                return _numpy.exp(-fit.logml)
+            case 'aic'|'AIC':
+                ic = fit.chi2
+                ic += 2.*len(fit.pflat) 
+                if data is not None: ic += 2.*(len(data) - len(fit.data['y']))
+                return _numpy.exp(-0.5*ic)
+            case _: 
+                if self._custom_ic is not None: 
+                    ic = self._custom_ic(fit, **self._ic_kwargs)
+                    return _numpy.exp(-0.5*ic)
+                else: _swissfit.SwissFitException(self._ic + ' is not supported')
 
-            # Save mean & covariance of fit parameters
-            model_property_dictionary[model] = {
-                'means': _gvar.mean(model_parameter_array),
-                'covariance_pp': _gvar.evalcov(model_parameter_array)
-            }
+    def _gdct(self): return _gvar.BufferDict()
 
-            # Save covariance of model parameters with data if are primary
-            if primary:
-                # Create buffer of data with 
-                full_dataset = (
-                    _numpy.array(self.data['y']).flat[:] if not fitter.prior_specified else
-                    _numpy.concatenate(
-                        (_numpy.array(self.data['y']).flat, _numpy.array(fitter.prior_flat).flat)
-                    )
-                )
+    def _get_model_dictionary(self,n):
+        return ([self._gdct() for nm,_ in enumerate(self._models)] for _ in range(n))
 
-                # Save covariance for parameters with data
-                model_property_dictionary[model]['covariance_py'] = _numpy.array(
-                    [
-                        [_gvar.cov(data, parameter) for data in full_dataset]
-                        for parameter in model_parameter_array
-                    ]
-                )
+    def _get_buffer_dictionary(self,n):
+        return (_gvar.BufferDict() for _ in range(n))
+    
+    def _get_wght_and_prms(self, nm):
+        for kf,f in self._models[nm].items():
+            if self.data is not None:
+                if isinstance(self.data,dict):
+                    data = self.data[kf]
+                else: data = self.data
+            else: data = None
+            wfv = self._wght(f,data)
+            pv = self._pd(f.p)
+            for lprms,prms in pv.items():
+                for nprm,prm in enumerate(prms):
+                    k = kf+(lprms,)+(nprm,)
+                    self._p[nm][k] = prm
+                    for lf,_ in self._models[nm].items():
+                        wv = wfv if kf == lf else 1.
+                        for mprms,_ in pv.items():
+                            for oprm,_ in enumerate(prms):
+                                l = lf+(mprms,)+(oprm,)
+                                self._w[nm][(k,l)] = wv
+                                if nm == 0: self._Z[(k,l)] = wv
+                                else: self._Z[(k,l)] += wv
+                    if nm == 0: self._ap[k] = 0.
+                    self._ap[k] += _gvar.mean(self._p[nm][k])*self._w[nm][(k,k)]
+        self._pm[nm] = _gvar.mean(self._p[nm])
+        self._pcov[nm] = _gvar.evalcov(self._p[nm])
+        return nm
 
-        # Save means in more convenient arrays
-        model_means = [
-            [parameter for parameter in model_property_dictionary[model]['means']]
-            for model in model_property_dictionary.keys()
-        ] # Individual parameter means from each model
-        model_means_outer = [_numpy.outer(ps, ps) for ps in model_means] # Outer product of means
-        
-        # Model-average parameters
-        means = [
-            sum(w * p for w, p in zip(weight_array, model_mean))
-            for model_mean in _numpy.transpose(model_means)
-        ]
+    def _get_model_average(self, nm):
+        if nm == 0:
+            for k in self._ap.keys(): self._ap[k] /= self._Z[(k,k)] 
+        for kw in self._w[nm].keys():
+            self._w[nm][kw] /= self._Z[kw]
+            wv = self._w[nm][kw]
+            if nm == 0: self._apcov[kw] = -self._ap[kw[0]]*self._ap[kw[-1]]
+            self._apcov[kw] += self._pcov[nm][kw]*wv
+            self._apcov[kw] += self._pm[nm][kw[0]]*self._pm[nm][kw[-1]]*wv
+        return nm
 
-        # Model-average covariance
-        cov_pp = sum(
-            w * model_property_dictionary[model]['covariance_pp']
-            for w, model in zip(weight_array, model_property_dictionary.keys())
-        )
-        cov_pp += sum(w * papb for w, papb in zip(weight_array, model_means_outer))
-        cov_pp -= _numpy.outer(means, means)
+    @property
+    def p(self): # PRD103(114502), PRD109(014510)
+        self._nmodels = len(self._models)
+        models = list(range(self._nmodels))
 
-        # Save model average
-        if primary:
-            cov_py = _numpy.transpose(sum(
-                w * model_property_dictionary[model]['covariance_py']
-                for w, model in zip(weight_array, model_property_dictionary.keys())
-            ))
-            p = _gvar.gvar(
-                means, cov_pp,
-                full_dataset, cov_py
-            )
-        else: p = _gvar.gvar(means, cov_pp)
-        self.p = self._map_keys(p)
+        self._p, self._w, self._pm, self._pcov = self._get_model_dictionary(4)
+        self._Z, self._ap, self._apcov = self._get_buffer_dictionary(3)
 
-    # Helper function for mapping flat array back into a dictionary
-    def _map_keys(self, p):
-        # Convert flattened array into dictionary
-        if self._hierarchical:
-            for lvl in self.p0.keys():
-                for ky in self.parameter_locations[lvl].keys():
-                    self._p[lvl][ky] = p[self._lngths[lvl][ky][0]:self._lngths[lvl][ky][-1]]
-        else:
-            for ky in self.parameter_locations.keys():
-                self._p[ky] = p[self._lngths[ky][0]:self._lngths[ky][-1]]
+        [*map(self._get_wght_and_prms, models)]
+        [*map(self._get_model_average, models)]
 
-        # Return dictionary of fit parameters
-        return self._p
+        del self._p, self._w, self._pm, self._pcov, self._Z
+        _gc.collect()
+
+        kwargs = {'x': {}, 'pk': tuple(), 'kk': tuple()}
+        ps = _expand(_gvar.gvar(self._ap, self._apcov), **kwargs)
+        if self._is_list: return ps['p']
+        else: return ps
