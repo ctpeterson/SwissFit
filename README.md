@@ -290,3 +290,74 @@ Estimator:
    nitn = 10 (adapt) 
    nitn = 10 (MCMC)
 ```
+
+
+## Simple Bayesian model averaging: subset selection as model variation
+
+`SwissFit` supports model averaging in the form of "Bayesian model averaging". See [PRD103(2021)114502](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.103.114502) and [PRD109(2024)014510](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.109.014510) for details. Let's go through the example outlined in Section IV.A of [PRD103(2021)114502](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.103.114502) using `SwissFit`. The code for generating the data in this example can be found in the [companion code](https://github.com/jwsitison/improved_model_avg_paper) for [PRD109(2024)014510](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.109.014510). For completeness, it is reproduced below.
+```
+import gvar as gv
+import numpy as np
+
+def create_synthetic_data(
+        a0=2.0,a1=10.4,
+        e0=0.8,e1=1.16,
+        NT=32,
+        rho=0.6,
+        var=0.09,
+        nsamp=1000
+    ): 
+    # arXiv:2008.01069 
+    # jwsitison/improved_model_avg_paper/improved_model_averaging/synth_data.py
+    def F(nt): return a0*np.exp(-e0*nt)+a1*np.exp(-e1*nt)
+    def corr_fcn(nt,ntp): return rho**np.abs(nt-ntp)
+
+    Fnt = np.fromfunction(F,(NT,))
+    corr = np.fromfunction(corr_fcn, (NT,NT))
+    eta = gv.raniter(gv.correlate([gv.gvar(0.,np.sqrt(var))]*NT,corr))
+    
+    dataset = [Fnt*(1.+next(eta)) for _ in range(nsamp)]
+    return [*range(NT)], gv.dataset.avg_data(dataset)
+
+xdata,ydata = create_synthetic_data()
+```
+Now that we have our synthetic dataset, let's define a model function for it.
+```
+def model(nt,p):
+    return p['a0'][0]*gv.exp(-p['e0']*nt)
+```
+We want to extract a model-averaged estimate for `a0` and `e0` from fits to subsets of the data created by `create_synthetic_data()`. The following code utilizes `SwissFit` to extract an estimate of `a0` and `e0` over the subsets explored in [PRD103(2021)114502](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.103.114502). Each fit is performed as in the latter two examples and they are collected in an array called `fits`.
+```
+from swissfit import fit as fitter
+from swissfit.optimizers import scipy_least_squares
+
+tmin_max = 28
+optimizer = scipy_least_squares.SciPyLeastSquares()
+
+fits = [
+  fitter.SwissFit(
+    data = {'x': xdata[nt:], 'y': ydata[nt:]},
+    p0 = p0,
+    fit_fcn = model
+  )(optimizer)
+  for nt in range(0,tmin_max+1)
+]
+```
+To model average, we simply create a `BayesianModelAveraging` object by passing the above array of `SwissFit` fits and the entire dataset (`ydata`) into its constuctor.
+```
+from swissfit.model_averaging import model_averaging
+model_average = model_averaging.BayesianModelAveraging(models=fits, ydata=ydata)
+```
+To get the result of the model average, simply call `model_average.p`, as we do with regular `SwissFit` objects.
+```
+model_average_result = model_average.p
+a0,e0 = model_average_result['a0'][0],model_average_result['e0'][0]
+print('a0:',sfa0)
+print('e0:',sfe0)
+```
+The above code should yield the following result.
+```
+a0: 2.084(39)
+e0: 0.80141(78)
+```
+Note that the `BayesianModelAveraging` class calculates the full model-averaged covariance matrix. Hence, the fit parameters in `model_average_result` dictionary above are fully correlated [GVar](https://github.com/gplepage/gvar) variables. For more details, see the example code under `examples/model_average_correlation_function.py`.
