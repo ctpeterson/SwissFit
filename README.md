@@ -292,7 +292,7 @@ Estimator:
 ```
 
 
-## Simple Bayesian model averaging: subset selection as model variation
+## Simple Bayesian model averaging: subset selection
 
 `SwissFit` supports model averaging in the form of "Bayesian model averaging". See [PRD103(2021)114502](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.103.114502) and [PRD109(2024)014510](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.109.014510) for details. Let's go through the example outlined in Section IV.A of [PRD103(2021)114502](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.103.114502) using `SwissFit`. The code for generating the data in this example can be found in the [companion code](https://github.com/jwsitison/improved_model_avg_paper) for [PRD109(2024)014510](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.109.014510). For completeness, it is reproduced below.
 ```
@@ -332,6 +332,7 @@ from swissfit import fit as fitter
 from swissfit.optimizers import scipy_least_squares
 
 tmin_max = 28
+p0 = {'a0': [0.1], 'e0': [0.1]}
 optimizer = scipy_least_squares.SciPyLeastSquares()
 
 fits = [
