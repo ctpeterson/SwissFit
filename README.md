@@ -353,8 +353,8 @@ To get the result of the model average, simply call `model_average.p`, as we do 
 ```
 model_average_result = model_average.p
 a0,e0 = model_average_result['a0'][0],model_average_result['e0'][0]
-print('a0:',sfa0)
-print('e0:',sfe0)
+print('a0:',a0)
+print('e0:',e0)
 ```
 The above code should yield the following result.
 ```
