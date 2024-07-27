@@ -39,8 +39,8 @@ The following are planned or already in the works for `SwissFit`
 
 To install `SwissFit`, open up a terminal and enter the following commands.
 ```
-# Upgrade setuptools - optional, but recommended
-pip3 install --upgrade setuptools pip
+# Upgrade pip - optional, but recommended
+pip3 install --upgrade pip
 
 # Install SwissFit
 pip3 install swissfit
