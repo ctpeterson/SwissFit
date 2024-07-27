@@ -66,8 +66,8 @@ All versions of the above libraries should at least be compatible with `Python>=
 
 SwissFit will be uploaded to PyPI for simple installation sometime in the near future. For now, install SwissFit as follows. First, clone this repository into whatever folder that you wish. Then `cd` into your cloned directory for SwissFit and install by running `setup.py` as
 ```
-# Upgrade setuptools - optional, but recommended
-pip3 install --upgrade setuptools pip
+# Update pip - optional, but recommended
+pip3 install --upgrade pip
 
 # Install SwissFit
 pip3 install swissfit
