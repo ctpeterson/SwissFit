@@ -1,13 +1,13 @@
 from setuptools import setup, find_packages
 import os as os
 
-VERSION = '0.2'
+VERSION = '0.22'
 DESCRIPTION = 'SwissFit'
 LONG_DESCRIPTION = 'SwissFit: a cheesy multitool for fitting models to data'
 
 # Dependencies (https://stackoverflow.com/questions/26900328/install-dependencies-from-setup-py)
 lib_folder = os.path.dirname(os.path.realpath(__file__))
-requirement_path = f"{lib_folder}/docs/requirements.txt"
+requirement_path = f"{lib_folder}/requirements.txt"
 install_requires = [] 
 if os.path.isfile(requirement_path):
     with open(requirement_path) as f:
