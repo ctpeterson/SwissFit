@@ -2,10 +2,7 @@
 [![License: GPL v2](https://img.shields.io/badge/license-MIT-blue)](https://github.com/ctpeterson/SwissFit?tab=MIT-1-ov-file)
 [![Documentation Status](https://readthedocs.org/projects/swissfit/badge/?version=latest)](https://swissfit.readthedocs.io/en/latest/?badge=latest)
 
-
-<p align="center">
-  <img src="https://github.com/ctpeterson/SwissFit/blob/main/SwissFit_logo.png">
-</p>
+## SwissFit: a cheesy multitool for fitting models to data
 
 `SwissFit` is a general-purpose library for fitting models to data with Gaussian-distributed noise. The design of `SwissFit` is inspired by Peter Lepage's [lsqfit](https://github.com/gplepage/lsqfit) and operates in a similar manner. As such, it builds on top of the [GVar](https://github.com/gplepage/gvar) library and extensively utilizes the powerful numerical tools of [SciPy](https://scipy.org/) and [Vegas](https://github.com/gplepage/vegas) to estimate model parameters and their associated uncertainties. 
 
