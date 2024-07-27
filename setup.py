@@ -3,7 +3,7 @@ import os as os
 
 VERSION = '0.0.0'
 DESCRIPTION = 'SwissFit'
-LONG_DESCRIPTION = 'SwissFit: A cheesy multitool for complicated least squares fitting'
+LONG_DESCRIPTION = 'SwissFit: a cheesy multitool for fitting models to data'
 
 # Dependencies (https://stackoverflow.com/questions/26900328/install-dependencies-from-setup-py)
 lib_folder = os.path.dirname(os.path.realpath(__file__))
