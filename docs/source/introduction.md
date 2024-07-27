@@ -1,4 +1,4 @@
-## SwissFit: a cheesy multitool for fitting models to data
+## SwissFit
 [![Python](https://img.shields.io/badge/Python-3.10+-brightgreen.svg)](https://www.python.org)
 [![License: GPL v2](https://img.shields.io/badge/license-MIT-blue)](https://github.com/ctpeterson/SwissFit?tab=MIT-1-ov-file)
 [![Documentation Status](https://readthedocs.org/projects/swissfit/badge/?version=latest)](https://swissfit.readthedocs.io/en/latest/?badge=latest)
