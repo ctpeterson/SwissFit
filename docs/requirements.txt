@@ -1,4 +1,5 @@
 pip
+sphinx_pdj_theme
 scipy
 scikit-learn
 gvar
