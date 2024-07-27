@@ -1,3 +1,4 @@
 pip
 sphinx_pdj_theme
 swissfit
+myst-parser
