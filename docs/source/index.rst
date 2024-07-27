@@ -7,6 +7,7 @@ SwissFit
 ========
 
 .. image:: ../../SwissFit_logo.png
+   :align: center
 
 .. include:: introduction.md
    :parser: commonmark
