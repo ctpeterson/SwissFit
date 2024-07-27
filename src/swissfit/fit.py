@@ -4,6 +4,7 @@ Description of SwissFit...
 """
 
 # Import global & local modules
+import typing
 from .numerical_tools import linalg as _linalg # Useful linear algebra tools
 import gvar as _gvar # For automatic propagation of correlated errors
 import numpy as _numpy # For vectorized numerical operations
@@ -24,41 +25,12 @@ class SwissFitException(Exception):
     def __str__(self): return self.tag
 
 # Parent fitter class
-class Fitter(object):
+class _Fitter(object):
     def __init__(self, tag):
         self.tag = tag
 
-    def map_keys(self, p, return_parameters = False):
-        """ Convert list to dictionary
-        
-        Takes in a list of fit parameters "p" and converts them into
-        a dictionary that can be understood by the user. Dictionary 
-        keys are specified & ordered according to self.prior and self.p0.
-
-        Regardless of whether return_parameters is True, resulting
-        dictionary is saved as private _pdict attribute.
-
-        Args
-        ----
-        p : list
-            Fit parameters as one-dimensional list/array
-        return_parameters : bool, optional
-            Specify whether or not dictionary of fit parameters
-            should be returned to user.
-
-        Returns
-        -------
-        pdict : dictionary
-            Dictionary of fit parameters. Returned if 
-            return_parameters is True.
-
-        """
-        for key in self.p0.keys():
-            self._pdict[key] = p[self._plengths[key][0]:self._plengths[key][-1]]
-        if return_parameters: return self._pdict
-
-    # Create GVar variables to track gradients
-    def _create_tracker(self, p): self._trackerp = _numpy.array([*map(_gvar.gvar, p)])
+    def _create_tracker(self, p): 
+        self._trackerp = _numpy.array([*map(_gvar.gvar, p)])
         
     def call(self,
              estimator,
@@ -66,9 +38,6 @@ class Fitter(object):
              p = None,
              approx_cov = True
              ):
-        """ Main call method for doing fit
-        
-        """
         self._estimator = estimator
         self._approx_cov = approx_cov
         if p0 is not None: self.pflat = p0
@@ -111,8 +80,8 @@ class Fitter(object):
             self.pmean = self.p0 if p0 is None else p0
     
 # Parent SwissFit class
-class SwissFit(Fitter):
-    """ Fit with SwissFit
+class SwissFit(_Fitter):
+    """Fit with SwissFit
     
     SwissFit objects can be used to fit data by maximum a posterior (MAP) estimation 
     or direct sampling from the posterior.
@@ -173,7 +142,7 @@ class SwissFit(Fitter):
                  data_svdcut = None, # Apply SVD cut to data (optional)
                  prior_svdcut = None, # Apply SVD cut to prior (optional)
                  ):
-        """ SwissFit constructor method
+        """SwissFit constructor method
         
         Parameters
         ----------
@@ -256,7 +225,35 @@ class SwissFit(Fitter):
         # Prepare fit functions
         self._prepare_fit_fcns()
 
-    # Call method
+    def map_keys(self, p, return_parameters = False):
+        """Convert list to dictionary
+        
+        Takes in a list of fit parameters "p" and converts them into
+        a dictionary that can be understood by the user. Dictionary 
+        keys are specified & ordered according to self.prior and self.p0.
+
+        Regardless of whether return_parameters is True, resulting
+        dictionary is saved as private _pdict attribute.
+
+        Args
+        ----
+        p : list
+            Fit parameters as one-dimensional list/array
+        return_parameters : bool, optional
+            Specify whether or not dictionary of fit parameters
+            should be returned to user.
+
+        Returns
+        -------
+        pdict : dictionary
+            Dictionary of fit parameters. Returned if 
+            return_parameters is True.
+
+        """
+        for key in self.p0.keys():
+            self._pdict[key] = p[self._plengths[key][0]:self._plengths[key][-1]]
+        if return_parameters: return self._pdict
+
     def __call__(self,
              estimator,
              p0 = None,
@@ -265,8 +262,6 @@ class SwissFit(Fitter):
              ):
         self.call(estimator, p0 = p0, p = p, approx_cov = approximate_parameter_covariance)
         return self
-        
-    # Prepare data, prior, and functions
         
     def _prepare_data_and_prior(self):
         # Check to see if 'x' and/or 'y' specified in 'data'
@@ -291,7 +286,6 @@ class SwissFit(Fitter):
 
         # Get statistical information from priors & check for consistency w/ p0
         if self._prior_specified:
-            # Flatten dictionary of priors
             self.prior_flat = _numpy.array([
                 self.prior_transformation_fcn[key](prior)
                 if key in self.prior_transformation_fcn.keys() else prior
@@ -352,16 +346,11 @@ class SwissFit(Fitter):
         self._logpdf_prefac = _numpy.log(self._logpdf_prefac)
         
     def _prepare_fit_fcns(self):
-        # Function for calculating residual of data
         if self._correlated_data: self.data_residual = self._correlated_data_residual
         else: self.data_residual = self._uncorrelated_data_residual
-
-        # Function for calculating residual of prior
         if self._prior_specified:
             if self._correlated_prior: self.prior_residual = self._correlated_prior_residual
             else: self.prior_residual = self._uncorrelated_prior_residual
-        
-    # Functions for calculating residual of data
         
     def _return_fit_result(self, p):
         if self._x_specified: return self.fit_fcn(*self._x, p)
@@ -372,8 +361,6 @@ class SwissFit(Fitter):
 
     def _uncorrelated_data_residual(self, p):
         return (self._return_fit_result(p) - self._data_mean) / self._data_sdev
-
-    # Functions for calculate residual of priors 
     
     def _return_prior_result(self, p):
         return _numpy.array([
@@ -389,10 +376,8 @@ class SwissFit(Fitter):
     def _uncorrelated_prior_residual(self, p):
         return (self._return_prior_result(p) - self._prior_mean) / self._prior_sdev
 
-    # Functions for calculating residual & chi^2
-
     def calculate_residual(self, p, return_residual = True):
-        """ Calculate residual of augmented chi^2
+        """Calculate residual of augmented chi^2
 
         Calculates residual "residual", which enters the augmented
         chi^2 "chi_aug^2" as
@@ -420,21 +405,16 @@ class SwissFit(Fitter):
             return_residual is True.
 
         """
-        # Map flat array of parameters back to dictionary
         if (not isinstance(p, dict)) and (not isinstance(p, _gvar.BufferDict)):
             p = self.map_keys(p, return_parameters = True)
-        
-        # Calculate residual
         residual = self.data_residual(p)
         if self._prior_specified:
             residual = _numpy.concatenate([residual, self.prior_residual(p)])
-        
-        # Stack prior residual on top of data residual and return
         if return_residual: return residual
         else: self.residual = residual
     
     def calculate_chi2(self, p, return_chi2 = True):
-        """ Calculate augmented chi^2
+        """Calculate augmented chi^2
         
         Calculate augmented chi^2 "chi_aug^2" from 
         residual "residual" as
@@ -455,14 +435,9 @@ class SwissFit(Fitter):
             Augmented chi^2
 
         """
-        # Calculate residual
         self.calculate_residual(p, return_residual = False)
-
-        # Return chi2
         if return_chi2: return _numpy.dot(self.residual, self.residual)
         else: self.chi2 = _numpy.dot(self.residual, self.residual)
-
-    # Functions for calculating derivatives
 
     def _jacobian(self):
         return _numpy.array([
@@ -470,7 +445,7 @@ class SwissFit(Fitter):
         ])
 
     def calculate_jacobian(self, p, return_jacobian = True):
-        """ Calculate "Jacobian"
+        """Calculate "Jacobian"
 
         Calculates "Jacobian" of fit result (fit function & prior) 
         for each "data" point (data & prior) in fit parameters. 
@@ -495,17 +470,14 @@ class SwissFit(Fitter):
            Array of Jacobian values J_ij = ∂f_i/∂p_j
 
         """
-        # Create "tracker" (GVar) variable for auto. diff.
         self._create_tracker(p)
-
-        # Calculate Jacobian
         if return_jacobian: return self._jacobian()
         else: self.jacobian = self._jacobian()
 
     def _gradient(self): return self.calculate_chi2(self._trackerp).deriv(self._trackerp)
 
     def calculate_gradient(self, p, return_gradient = True):
-        """ Calculate gradient of chi^2
+        """Calculate gradient of chi^2
         
         Calculates the gradient of the augmented chi^2 "chi_aug^2"
         in the fit parameters. In other words,
@@ -528,15 +500,12 @@ class SwissFit(Fitter):
             Augmented chi^2 gradient
 
         """
-        # Create "tracker" (GVar) variable for auto. diff.
         self._create_tracker(p)
-
-        # Calculate gradient
         if return_gradient: return self._gradient()
         else: self.gradient = self._gradient()
 
     def calculate_hessian(self, p, return_hessian = True, approximate_hessian = True):
-        """ Calculate Hessian matrix
+        """Calculate Hessian matrix
         
         Calculates Hessian matrix of augmented chi^2 in fit parameters. 
         Calculated either approximately
@@ -569,22 +538,14 @@ class SwissFit(Fitter):
             Result of Hessian calculation
 
         """
-        # Calculate Hessian
         if approximate_hessian:
-            # Approximate Hessian ~ J*J^T, where J is the Jacobian
             self.calculate_jacobian(p, return_jacobian = False)
             self.hessian = _numpy.transpose(self.jacobian) @ self.jacobian
-        else:
-            # Hessian from finite difference in Jacobian
-            self.hessian = 0.5 * _jac(p, self.calculate_gradient)
-
-        # Return Hessian if requested
+        else: self.hessian = 0.5 * _jac(p, self.calculate_gradient)
         if return_hessian: return self.hessian
 
-    # Functions for calculating the posterior probability density
-
     def calculate_pdf(self, p, return_pdf = True, **kwargs):
-        """ Calculate probability distribution function
+        """Calculate probability distribution function
         
         Calculate probability distribution function for the posterior 
         distribution "posterior"
@@ -703,7 +664,6 @@ class SwissFit(Fitter):
     p = property(_p)
     
     # Printout when called as string
-
     def __str__(self):
         # Fit title
         out = ''
