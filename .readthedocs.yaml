@@ -2,13 +2,10 @@
 # Read the Docs configuration file
 # See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
 
-# Build version
-build:
-  image: latest
-
 # Set the OS, Python version and other tools you might need
 build:
   image: latest
+  os: ubuntu-22.04
   tools:
     python:
       version: 3.10
