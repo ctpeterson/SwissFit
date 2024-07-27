@@ -15,6 +15,10 @@ The current version of `SwissFit` is in beta status; as such, please consider it
 
 If you are here because you looked at "Constrained curve fitting for semi-parametric models with radial basis function networks" by Curtis Taylor Peterson and Anna Hasenfratz ([arXiv:2402.04175](https://arxiv.org/abs/2402.04175)), I have provided `Jupyter` notebooks that reproduce our results from that paper under the `examples` folder. These examples will work with v0.1 of SwissFit, which is downloadable under the "releases" tab.
 
+## Documentation
+
+Documentation is currently in the works, but accessible via [ReadTheDocs](https://swissfit.readthedocs.io)
+
 ## Acknowledgement
 
 If you use `SwissFit`, please consider citing this repository (see "cite the repository" on the right) or [arXiv:2402.04175](https://arxiv.org/abs/2402.04175). If you use the `VegasLepage` module to perform your fits using Markov chain Monte Carlo estimation, please acknowledge [Vegas](https://github.com/gplepage/vegas). 
@@ -62,7 +66,11 @@ All versions of the above libraries should at least be compatible with `Python>=
 
 SwissFit will be uploaded to PyPI for simple installation sometime in the near future. For now, install SwissFit as follows. First, clone this repository into whatever folder that you wish. Then `cd` into your cloned directory for SwissFit and install by running `setup.py` as
 ```
-python3 setup.py install
+# Upgrade setuptools - optional, but recommended
+pip3 install --upgrade setuptools pip
+
+# Install SwissFit
+pip3 install swissfit
 ```
 That's all. The `setup.py` script will install SwissFit for you, along with all of SwissFit's dependences; namely, [Numpy](https://github.com/numpy/numpy), [SciPy](https://scipy.org/), [Scikit-learn](https://scikit-learn.org/stable/), [GVar](https://github.com/gplepage/gvar), [Vegas](https://github.com/gplepage/vegas), and [Matplotlib](https://github.com/matplotlib/matplotlib).
 
