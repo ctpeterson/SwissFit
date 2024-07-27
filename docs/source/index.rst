@@ -6,7 +6,8 @@
 SwissFit
 ========
 
-.. mdinclude:: introduction.md
+.. include:: introduction.md
+   :parser: commonmark
 
 .. toctree::
    :maxdepth: 2
