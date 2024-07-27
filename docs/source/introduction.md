@@ -45,19 +45,5 @@ pip3 install --upgrade pip
 # Install SwissFit
 pip3 install swissfit
 ```
-That's all! Upon installation, the following packages will also been installed.
-
-`-` [Numpy](https://github.com/numpy/numpy)
-
-`-` [SciPy](https://scipy.org/)
-
-`-` [Scikit-learn](https://scikit-learn.org/stable/)
-
-`-` [GVar](https://github.com/gplepage/gvar)
-
-`-` [Vegas](https://github.com/gplepage/vegas)
-
-`-` [Matplotlib](https://github.com/matplotlib/matplotlib)
-
-Note that `SwissFit` requires `Python>=3.10` to run.
+That's all! Upon installation, the following packages will also been installed. Note that `SwissFit` requires `Python>=3.10` to run.
 
