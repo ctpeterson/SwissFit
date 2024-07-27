@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import os as os
 
-VERSION = '0.v'
+VERSION = '0.2'
 DESCRIPTION = 'SwissFit'
 LONG_DESCRIPTION = 'SwissFit: a cheesy multitool for fitting models to data'
 
@@ -36,7 +36,7 @@ setup(
     long_description = LONG_DESCRIPTION,
 
     keywords = ['least squares'],
-    classifiers = ['Programming Language :: Python :: 3'],
+    classifiers = ['Programming Language :: Python :: 3.10'],
 
     install_requires=install_requires
 )
