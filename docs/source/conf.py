@@ -23,7 +23,8 @@ release = '0.2'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
+    'myst_parser'
 ]
 
 napoleon_google_docstring = False
