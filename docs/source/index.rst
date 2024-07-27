@@ -6,6 +6,8 @@
 SwissFit
 ========
 
+.. image:: ../../SwissFit_logo.png
+
 .. include:: introduction.md
    :parser: commonmark
 
