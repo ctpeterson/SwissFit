@@ -58,11 +58,11 @@ class _Fitter(object):
                             {
                                 'scipy_least_squares': self.calculate_residual,
                                 'scipy_minimize': self.calculate_chi2
-                            }[self._estimator.local_optimizer.tag],
+                            }[self._estimator.local_estimator.tag],
                             {
                                 'scipy_least_squares': self.calculate_jacobian,
                                 'scipy_minimize': self.calculate_gradient
-                            }[self._estimator.local_optimizer.tag]
+                            }[self._estimator.local_estimator.tag]
                         )
                 self.pmean = self.fit.x
             elif self._estimator.method == 'MCMC':
@@ -136,6 +136,7 @@ class SwissFit(_Fitter):
 
                  fit_fcn = None, # Function to be fit
                  prior_fcn = None, # Custom function for priors (optional)
+                 constraint_residual = None, # Custom fcn for representing constraints
 
                  prior_transformation_fcn = {}, # Custom transformation of priors (optional)
 
@@ -198,6 +199,7 @@ class SwissFit(_Fitter):
         if prior_transformation_fcn is not None:
             self.prior_transformation_fcn = prior_transformation_fcn
         else: self.prior_transformation_fcn = {}
+        self._constraint_residual = constraint_residual
             
         # Check if data specified. If so, check if it is correlated.
         if (data is None) and (udata is None):
@@ -344,7 +346,7 @@ class SwissFit(_Fitter):
             self._logpdf_prefac *= _det(_gvar.evalcov(self.prior_flat))
         self._logpdf_prefac = 1. / _numpy.sqrt(self._logpdf_prefac)
         self._logpdf_prefac = _numpy.log(self._logpdf_prefac)
-        
+
     def _prepare_fit_fcns(self):
         if self._correlated_data: self.data_residual = self._correlated_data_residual
         else: self.data_residual = self._uncorrelated_data_residual
@@ -410,6 +412,8 @@ class SwissFit(_Fitter):
         residual = self.data_residual(p)
         if self._prior_specified:
             residual = _numpy.concatenate([residual, self.prior_residual(p)])
+        if self._constraint_residual is not None:
+            residual = _numpy.concatenate([residual,self._constraint_residual(*self._x,p)])
         if return_residual: return residual
         else: self.residual = residual
     
@@ -436,8 +440,8 @@ class SwissFit(_Fitter):
 
         """
         self.calculate_residual(p, return_residual = False)
-        if return_chi2: return _numpy.dot(self.residual, self.residual)
-        else: self.chi2 = _numpy.dot(self.residual, self.residual)
+        if return_chi2: return _numpy.dot(self.residual,self.residual)
+        else: self.chi2 = _numpy.dot(self.residual,self.residual)
 
     def _jacobian(self):
         return _numpy.array([
@@ -592,7 +596,10 @@ class SwissFit(_Fitter):
     
     # Bayesian count on # of degrees of freedom
     def _dof(self):
-        if self._prior_specified: return self._frequentist_dof() + len(self.prior_flat)
+        if self._constraint_residual is None: nxtra_cnstr = 0
+        else: nxtra_cnstr = len(self._constraint_residual(*self._x,self._pdict))
+        if self._prior_specified: 
+            return self._frequentist_dof() + len(self.prior_flat) + nxtra_cnstr
         else: return self._frequentist_dof()
 
     # Bayesian p-value

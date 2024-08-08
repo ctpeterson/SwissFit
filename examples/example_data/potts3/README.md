@@ -1,0 +1,1 @@
+This data was created using the [SpinMonteCarlo](https://github.com/yomichi/SpinMonteCarlo.jl) library. If you use it for your research, please acknowledge [SpinMonteCarlo](https://github.com/yomichi/SpinMonteCarlo.jl).

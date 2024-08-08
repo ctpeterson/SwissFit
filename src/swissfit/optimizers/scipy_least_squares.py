@@ -16,7 +16,7 @@ def scipy_least_squares(fcn, x0, **kwargs):
         # Do least squares fit
         fit = _optimize.least_squares(
             fcn, x0, **{key: kwargs[key] for key in kwargs.keys() if key in _lsq_args}
-        );
+        )
         
         # Add cost to OptimizeResult object as 'fun'
         fit.fun = fit.cost
