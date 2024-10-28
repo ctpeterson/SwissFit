@@ -1,6 +1,7 @@
 from scipy import optimize as _optimize # SciPy optimize
 import numpy as _numpy # Number crunching
 from .optimizer import Optimizer as _Optimizer # Optimizer parent class
+import warnings as _warnings
 
 """ Least squares wrapper """
 # Filter for appropriate SciPy least squares arguments
@@ -25,7 +26,7 @@ def scipy_least_squares(fcn, x0, **kwargs):
         return fit
     except ValueError:
         # Warn user that there was a value error
-        print('Warning! ValueError in local optimization.')
+        _warnings.warn('Warning! ValueError in local optimization.')
         
         # Return null OptimizeResult
         return _optimize.OptimizeResult(
