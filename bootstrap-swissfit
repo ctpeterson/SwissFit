@@ -1,0 +1,25 @@
+#!/bin/sh
+
+cwd=$(pwd)
+builddir=$cwd/build/
+mkdir $builddir
+
+# Nim - backend language
+nimv="nim-2.2.2"
+nimp="$nimv-linux_x64.tar.xz"
+curl -LO "https://nim-lang.org/download/$nimp"
+tar -xf $cwd/$nim -C $builddir/
+
+# Nimporter - for Python interface to Nim code
+nimporterv="1.1.0"
+nimporter="v$nimporterv.tar.gz"
+curl -LO "https://github.com/Pebaz/nimporter/archive/refs/tags/$nimporter"
+tar -xf $cwd/$nimporter -C $builddir/
+
+export nim=$builddir/$nimv/bin/nim
+export nimble=$builddir/$nimv/bin/nimble
+
+cd $builddir/nimporter-$nimporterv
+pip3 install -r requirements_dev.txt
+pip3 install .
+

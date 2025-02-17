@@ -97,6 +97,14 @@ proc `/`*[T](a,b: SwissJet[T]): SwissJet[T] =
         if not b.forward: b.dx -= a.x*x.dx/(b.x*b.x)
       result.stack.add(a)
       result.stack.add(b)
+proc `/`*[T](a: T; b: SwissJet[T]): SwissJet[T] =
+  result = (a / b.x).prolong(forward = b.forward, derived = true)
+  case result.forward:
+    of true: result.dx = (-a)*b.dx/(b.x*b.x)
+    of false:
+      result.backprop = proc(x: SwissJet[T]) =
+        if not b.forward: b.dx -= a*x.dx/(b.x*b.x)
+      result.stack.add(b)
 proc `/`*[T](a: SwissJet[T]; b: T): SwissJet[T] =
   result = (a.x / b).prolong(forward = a.forward, derived = true)
   case result.forward:
@@ -105,15 +113,6 @@ proc `/`*[T](a: SwissJet[T]; b: T): SwissJet[T] =
       result.backprop = proc(x: SwissJet[T]) =
         if not a.forward: a.dx += x.dx/b
       result.stack.add(a)
-proc `/`*[T](a: T; b: SwissJet[T]): SwissJet[T] =
-  result = (a / b.x).prolong(forward = b.forward, derived = true)
-  case result.forward:
-    of true: result.dx = (-a)*b.dx/(b.x*b.x)
-    of false:
-      result.backprop = proc(x: SwissJet[T]) =
-        if not b.forward: b.dx -= a*x.dx/(b.x*b.x)
-      result.stack.add(a)
-      result.stack.add(b)
 
 proc backprop*[T](jx: SwissJet[T]) =
   assert(not jx.forward)
