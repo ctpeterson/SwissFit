@@ -1,9 +1,11 @@
 # SwissJet type
 # Represents 1-jet (dual number); able to do both
-# forward-mode and reverse-mode automatic differentiation
+# forward-mode and reverse-mode automatic differentiation.
+# Prologation "functor" (not quite a functor) takes types 
+# "T" to their first-jet prolongation; elementary arithematic of 
+# first-jet prolongation taken care of by operator overloading
 
-import swisstensor
-export swisstensor
+import ../tensor/[swisstensor,swissarray]
 
 type 
   SwissJet*[T] = ref object
