@@ -4,7 +4,9 @@
 #  - SwissArray type modeled after custom sequence example in Nim documentation
 #    - https://nim-lang.org/docs/destructors.html
 #  - SwissTensor type modeled after Arraymancer Tensor
-#    - https://github.com/mratsim/Arraymancer
+#    - https://github.com/mratsim/Arraymancers
+
+import simd
 
 type
   SwissArray*[T] = object
@@ -17,10 +19,12 @@ type
     strides: array[V,int]
     storage*: SwissArray[T]
 
-proc `=destroy`[T](x: SwissArray[T]) =
+#[
+proc `=destroy`[T](x: var SwissArray[T]) =
   if x.data != nil:
-    for idx in 0..<x.len: `=destroy`(x.data[idx])
     dealloc(x.data)
+    x.data = nil
+]#
 
 proc `=trace`[T](x: var SwissArray[T]; env: pointer) =
   if x.data != nil:
@@ -87,11 +91,29 @@ proc add[T](x,y: SwissArray[T]): SwissArray[T] =
 proc add[T](x: var SwissArray[T]; y: SwissArray[T]) =
   for idx in 0..<x.len: x[idx] = x[idx] + y[idx]
 
+proc add[T](x: SwissArray[T]; y: T): SwissArray[T] =
+  like(result,x)
+  for idx in 0..<x.len: result[idx] = x[idx] + y
+proc add[T](x: T; y: SwissArray[T]): SwissArray[T] =
+  like(result,y)
+  for idx in 0..<y.len: result[idx] = x + y[idx]
+proc add[T](x: var SwissArray[T]; y: T) =
+  for idx in 0..<x.len: x[idx] = x[idx] + y
+
 proc subtract[T](x,y: SwissArray[T]): SwissArray[T] =
   like(result,x)
   for idx in 0..<x.len: result[idx] = x[idx] - y[idx]
 proc subtract[T](x: var SwissArray[T]; y: SwissArray[T]) =
   for idx in 0..<x.len: x[idx] = x[idx] - y[idx]
+
+proc subtract[T](x: SwissArray[T]; y: T): SwissArray[T] =
+  like(result,x)
+  for idx in 0..<x.len: result[idx] = x[idx] - y
+proc subtract[T](x: T; y: SwissArray[T]): SwissArray[T] =
+  like(result,y)
+  for idx in 0..<y.len: result[idx] = x - y[idx]
+proc subtract[T](x: var SwissArray[T]; y: T) =
+  for idx in 0..<x.len: x[idx] = x[idx] - y
 
 proc multiply[T](x,y: SwissArray[T]): SwissArray[T] =
   like(result,x)
@@ -168,7 +190,14 @@ template `:=`*[T](x: var T; y: T) =
 proc size*[V:static[int],T](tensor: SwissTensor[V,T]): int = tensor.storage.len
 
 proc newTensor*[V:static[int],T](shape: array[V,int]; t: typedesc[T]): SwissTensor[V,T] =
-  result.storage = new(tensor(result,shape),t)
+  result.storage := new(tensor(result,shape),t)
+
+proc newTensor*[V:static[int]](
+    shape: array[V,int]; 
+    x: int32 | int64 | float32 | float64
+  ): SwissTensor[V,type(x)] =
+  result.storage := new(tensor(result,shape),type(x))
+  for idx in 0..<result.storage.len: result.storage[idx] = x
 
 proc `+`*(x,y: SwissTensor): SwissTensor =
   operable(x,y)
@@ -178,6 +207,15 @@ proc `+=`*(x: var SwissTensor; y: SwissTensor) =
   operable(x,y)
   x.storage.add(y.storage)
 
+proc `+`*[V:static[int],T](x: T; y: SwissTensor[V,T]): SwissTensor[V,T] =
+  like(result,y)
+  result.storage := add(x,y.storage)
+proc `+`*[V:static[int],T](x: SwissTensor[V,T]; y: T): SwissTensor[V,T] =
+  like(result,x)
+  result.storage := add(x.storage,y)
+proc `+=`*[V:static[int],T](x: var SwissTensor[V,T]; y: T) =
+  x.storage.add(y)
+
 proc `-`*(x,y: SwissTensor): SwissTensor =
   operable(x,y)
   like(result,x)
@@ -185,6 +223,15 @@ proc `-`*(x,y: SwissTensor): SwissTensor =
 proc `-=`*(x: var SwissTensor; y: SwissTensor) =
   operable(x,y)
   x.storage.subtrace(y.storage)
+
+proc `-`*[V:static[int],T](x: T; y: SwissTensor[V,T]): SwissTensor[V,T] =
+  like(result,y)
+  result.storage := subtract(x,y.storage)
+proc `-`*[V:static[int],T](x: SwissTensor[V,T]; y: T): SwissTensor[V,T] =
+  like(result,x)
+  result.storage := subtract(x.storage,y)
+proc `-=`*[V:static[int],T](x: var SwissTensor[V,T]; y: T) =
+  x.storage.subtract(y)
 
 proc `*`*(x,y: SwissTensor): SwissTensor =
   operable(x,y)
