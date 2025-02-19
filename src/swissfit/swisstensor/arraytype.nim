@@ -9,18 +9,15 @@ import ../simd/[simd]
 type
   SwissArray*[T] = object
     len,cap: int
-    data: ptr UncheckedArray[T]
+    data*: ptr UncheckedArray[T]
 
-#[
-proc `=destroy`[T](x: var SwissArray[T]) =
-  if x.data != nil:
+proc `=destroy`[T](x: SwissArray[T]) = 
+  if x.data != nil: 
+    for idx in 0..<x.len: `=destroy`(x.data[idx])
     dealloc(x.data)
-    x.data = nil
-]#
 
 proc `=trace`*[T](x: var SwissArray[T]; env: pointer) =
-  if x.data != nil:
-    for idx in 0..<x.len: `=trace`(x.data[idx],env)
+  if x.data != nil: (for idx in 0..<x.len: `=trace`(x.data[idx],env))
 
 proc `=wasMoved`*[T](x: var SwissArray[T]) = (x.data = nil)
 
@@ -49,18 +46,43 @@ proc append*[T](x: var SwissArray[T]; y: sink T) =
     x.data = cast[typeof(x.data)](realloc(x.data, x.cap*sizeof(T)))
   x.data[x.len] = y; inc x.len;
 
+template allocate[T](x: var SwissArray[T]; len: int; t: typedesc[T]) =
+  x = SwissArray[T](len: len, cap: len)
+  x.data = cast[typeof(x.data)](alloc(len*sizeof(T)))
+
 proc new*[T](xs: seq[T]): SwissArray[T] =
-  result = SwissArray[T](len: xs.len, cap: xs.len)
-  result.data = cast[typeof(result.data)](alloc(result.cap*sizeof(T)))
+  result.allocate(x.len,type(t))
   for idx in 0..<result.len: result.data[idx] = xs[idx]
 
-proc new*[T](len: int; t: typedesc[T]): SwissArray[T] =
-  result = SwissArray[T](len: len, cap: len)
-  result.data = cast[typeof(result.data)](alloc(result.cap*sizeof(T)))
+proc new*[T](len: int; t: typedesc[T]): SwissArray[T] = result.allocate(len,t)
+
+proc new*[T](len: int; x: T): SwissArray[T] =
+  result.allocate(len,type(x))
+  for idx in 0..<len: result.data[idx] = x
+
+proc new*[T](len: int; x: SwissArray[T]): SwissArray[T] =
+  assert(x.data != nil)
+  result.allocate(len,type(x[0]))
+  for idx in 0..<len: result.data[idx] = x[idx]
+
+proc isUnit*[T](x: SwissArray[T]): bool {.inline.} =
+  result = true
+  for idx in 0..<x.len: (if x[idx] != T(1.0): result = false)
+
+proc isNull*[T](x: SwissArray[T]): bool {.inline.} =
+  result = true
+  for idx in 0..<x.len: (if x[idx] != T(0.0): result = false)
 
 template like*[T](x: var SwissArray[T]; y: SwissArray[T]) =
   x = SwissArray[T](len: y.len, cap: y.len)
   x.data = cast[typeof(x.data)](alloc(x.cap*sizeof(T)))
+
+proc conformable*[T](x,y: SwissArray[T]) =
+  assert(x.len == y.len) 
+  assert(x.cap == y.cap)
+
+template `<-`*[T](x: SwissArray[T]; y: T) = (x := y)
+template `<-`*[S,T](x: S; y: T) = (x = S(y))
 
 template `[]`*[T](x: SwissArray[T]; idx: Natural): lent T =
   assert idx < x.len
@@ -70,12 +92,9 @@ template `[]=`*[T](x: var SwissArray[T]; idx: Natural; y: sink T) =
   x.data[idx] = y
 proc len*[T](x: SwissArray[T]): int {.inline.} = x.len
 
-proc conformable[T](x,y: SwissArray[T]) =
-  assert(x.len == y.len) 
-  assert(x.cap == y.cap)
-
 proc `:=`*[T](x: var SwissArray[T]; y: T) =
   for idx in 0..<x.len: x[idx] = y
+template `:=`*[T](x: var T; y: T) = (x = y)
 
 proc add*[T](x,y: SwissArray[T]): SwissArray[T] =
   like(result,x)
