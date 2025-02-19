@@ -1,7 +1,9 @@
 import arraytype
+import arrayarithematic
 import tensortype
 import tensorarithematic
 
 export arraytype
+export arrayarithematic
 export tensortype
 export tensorarithematic

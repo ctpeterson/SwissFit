@@ -5,7 +5,7 @@
 # "T" to their first-jet prolongation; elementary arithematic of 
 # first-jet prolongation taken care of by operator overloading
 
-import ../swisstensor/[swisstensor]
+import ../swisstensor/[swisstensor,tensorattributes]
 
 type 
   Swiss1Jet*[T] = ref object
@@ -60,3 +60,23 @@ proc vectorize*[V:static[int],T](
   if not result.pushforward: 
     result.back = proc(x: Swiss1Jet[SwissTensor[V,T]]) = discard
     result.stack = newSeq[Swiss1Jet[SwissTensor[V,T]]]()
+
+template sweep[T](graph: var seq[Swiss1Jet[T]]; work: untyped) =
+  var rank {.inject.} = 0
+  while graph.len > 0:
+    var node {.inject.} = graph.pop()
+    work 
+    inc rank
+    for next in node.stack: graph.add(next)
+
+proc sanitize[T](head: Swiss1Jet[T]): seq[Swiss1Jet[T]] =
+  var graph = @[head]
+  graph.sweep:
+    if (not node.dx.isUnit) and (rank == 0): node.dx <- 1.0
+    if (not node.dx.isNull) and (rank > 0): node.dx <- 0.0
+  result = @[head]
+
+proc pullback*[T](jx: Swiss1Jet[T]) =
+  assert(not jx.pushforward)
+  var graph = jx.sanitize()
+  graph.sweep: node.back(node)
