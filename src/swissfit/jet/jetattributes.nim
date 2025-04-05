@@ -1,5 +1,5 @@
 import jettypes
-import ../swisstensor/[swisstensor,tensorattributes]
+import ../tensor/[swisstensor,attributes]
 
 template pushforward*(a,b): bool = ((a.pushforward) or (b.pushforward))
 

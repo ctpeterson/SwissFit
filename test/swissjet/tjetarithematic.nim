@@ -1,5 +1,5 @@
-import ../../src/swissfit/swissjet/swissjet
-import ../../src/swissfit/swisstensor/swisstensor
+import ../../src/swissfit/jet/swissjet
+import ../../src/swissfit/tensor/swisstensor
 
 var x = 1.0
 var 

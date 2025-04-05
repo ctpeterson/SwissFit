@@ -1,5 +1,5 @@
 import jettypes,jetattributes
-import ../swisstensor/[swisstensor]
+import ../tensor/[swisstensor]
 
 proc `+`*[T](a,b: Swiss1Jet[T]): Swiss1Jet[T] =
   result = (a.x + b.x).prolong(pushforward = pushforward(a,b), derived = true)

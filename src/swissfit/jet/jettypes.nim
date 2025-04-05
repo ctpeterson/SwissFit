@@ -5,7 +5,7 @@
 # "T" to their first-jet prolongation; elementary arithematic of 
 # first-jet prolongation taken care of by operator overloading
 
-import ../swisstensor/[swisstensor,tensorattributes]
+import ../tensor/[swisstensor,attributes]
 
 type 
   Swiss1Jet*[T] = ref object

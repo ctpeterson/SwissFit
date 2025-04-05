@@ -1,4 +1,5 @@
-import arraytype,tensortype
+import tensor 
+import ../array/[swissarray]
 
 template active*(x: SwissTensor) = assert(x.storage.data != nil)
 

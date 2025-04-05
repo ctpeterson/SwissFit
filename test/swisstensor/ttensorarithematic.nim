@@ -1,4 +1,4 @@
-import ../../src/swissfit/swisstensor/swisstensor
+import ../../src/swissfit/tensor/swisstensor
 
 var 
   ts1 = newTensor([2,2],float)

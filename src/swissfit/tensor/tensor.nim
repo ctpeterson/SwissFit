@@ -4,7 +4,7 @@
 #  - SwissTensor type modeled after Arraymancer Tensor
 #    - https://github.com/mratsim/Arraymancers
 
-import arraytype
+import ../array/swissarray
 
 type
   SwissTensor*[V:static[int],T] = object
@@ -41,12 +41,12 @@ template `[]`*[V:static[int],T](x: var SwissTensor[V,T]; idx: array[V,int]): var
 
 # Constructors
 proc newTensor*[V:static[int],T](shape: array[V,int]; t: typedesc[T]): SwissTensor[V,T] =
-  result.storage := new(new(result,shape),t)
+  result.storage := new[T](new(result,shape))
 proc newTensor*[V:static[int]](
     s: array[V,int]; 
     x: float32 | float64
   ): SwissTensor[V,type(x)] =
-  result.storage := new(new(result,s),type(x))
+  result.storage := new[type(x)](new(result,s))
   for idx in 0..<result.storage.len: result.storage[idx] = x
 proc newTensor*[V:static[int],T](
     s: array[V,int]; 
