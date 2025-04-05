@@ -54,13 +54,12 @@ proc `=wasMoved`*[T](x: var SwissArray[T]) = (x.data = nil)
 proc `=sink`*[T](x: var SwissArray[T]; y: SwissArray[T]) =
   `=destroy`(x) 
   `=wasMoved`(x)
-  (x.len,x.cap,x.data) = (y.len,y.cap,y.data)
+  (x.len,x.cap,x.vcap,x.data) = (y.len,y.cap,y.vcap,y.data)
 
 # Create duplicate of SwissArray in memory
 proc `=dup`*[T](y: SwissArray[T]): SwissArray[T] = 
-  result = SwissArray[T](len: y.len, cap: y.len, data: nil)
+  result = SwissArray[T](len: y.len, cap: y.len, vcap: y.vcap, data: nil)
   if y.data != nil:
-    #result.data = cast[ptr UncheckedArray[T]](alloc(y.cap*sizeof(T)))
     result.data = cast[ptr UncheckedArray[T]](aligned_alloc[T](y.cap*sizeof(T)))
     for idx in 0..<y.len: result.data[idx] = y.data[idx]
 
@@ -79,16 +78,17 @@ proc `=trace`*[T](x: var SwissArray[T]; env: pointer) =
 proc append*[T](x: var SwissArray[T]; y: sink T) =
   if x.len >= x.cap:
     x.cap = max(x.len + 1, 2*x.cap)
-    #x.data = cast[ptr UncheckedArray[T]](realloc(x.data, x.cap*sizeof(T)))
     x.data = cast[ptr UncheckedArray[T]](aligned_realloc(x.data, x.cap*sizeof(T)))
   x.data[x.len] = y
   inc x.len
+  x.vcap = (x.len div vlen[T]())*vlen[T]()
 
 # Allocate resources to SwissArray
 proc allocate[T](x: var SwissArray[T]; len: int) =
   assert((T is float32) or (T is float64))
   x = SwissArray[T](len: len, cap: len)
   x.data = cast[ptr UncheckedArray[T]](aligned_alloc[T](len*sizeof(T)))
+  x.vcap = (x.len div vlen[T]())*vlen[T]()
 
 # SwissArray constructors
 proc new*[T](xs: seq[T]): SwissArray[T] =

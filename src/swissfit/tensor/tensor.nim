@@ -36,12 +36,16 @@ template `:=`*(x: var SwissTensor; y: SwissTensor) =
   `=copy`(x.storage,y.storage)
 template `:=`*[V:static[int],T](x: var SwissTensor[V,T]; y: T) = (x.storage := y)
 template `<-`*[V:static[int],T](x: SwissTensor[V,T]; y: T) = (x := y)
-template `[]`*[V:static[int],T](x: var SwissTensor[V,T]; idx: array[V,int]): var T = 
-  x.storage[x.index(idx)]
+template `[]`*[V:static[int],T](
+    x: var SwissTensor[V,T]; 
+    idx: array[V,int]
+  ): var T = x.storage[x.index(idx)]
 
 # Constructors
-proc newTensor*[V:static[int],T](shape: array[V,int]; t: typedesc[T]): SwissTensor[V,T] =
-  result.storage := new[T](new(result,shape))
+proc newTensor*[V:static[int],T](
+    shape: array[V,int]; 
+    t: typedesc[T]
+  ): SwissTensor[V,T] = (result.storage := new[T](new(result,shape)))
 proc newTensor*[V:static[int]](
     s: array[V,int]; 
     x: float32 | float64
