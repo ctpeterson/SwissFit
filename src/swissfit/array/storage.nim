@@ -9,34 +9,35 @@
 ##  - More information about manual Nim memory management can be found in 
 ##    Andreas Rumpf's "Mastering Nim"
 ##  - Requires c++15 or newer (aligned_alloc)
+##  - SwissSeq modelled after dynamic stack array in Arraymaner 
+##    (https://github.com/mratsim/Arraymancers)
 
 import ../simd/[swisssimd]
 
 {.pragma: stdlib, header: "<stdlib.h>".}
 
 type
-  HeapAlloc* = object
+  Index = Natural or BackwardsIndex
+  HeapAlloc = object
   SwissArray*[T] = object
     len,vlen,cap,vcap: int
     data*: ptr UncheckedArray[T]
 
-# Allocate memory to SIMD-aligned vector --> CHECK <--
+# Allocate memory to SIMD-aligned vector
 proc aligned_alloc(align,size: int): pointer {.tags: [HeapAlloc], importc, stdlib.}
 proc aligned_alloc[T](size: int): pointer =
   assert((T is float32) or (T is float64))
   if T is float32: result = aligned_alloc(VLENF,size)
   if T is float64: result = aligned_alloc(VLEND,size)
 
-# Deallocate memory assigned to SIMD-aligned vector --> CHECK <--
+# Deallocate memory assigned to SIMD-aligned vector
 proc aligned_free(p: pointer) {.tags:[HeapAlloc], importc: "free", stdlib.}
 
-# Reallocate memory assigned to SIMD-aligned vector --> CHECK <--
+# Reallocate memory assigned to SIMD-aligned vector
 proc aligned_realloc[T](x: var SwissArray[T]; newSize: int): pointer =
-  # --> this needs to be checked <--
   let 
     oldSize = x.len*sizeof(T)
-    oldAddr = addr x.data
-    newAddr = aligned_alloc[T](newSize)
+    (oldAddr,newAddr) = (addr x.data,aligned_alloc[T](newSize))
   copyMem(newAddr,oldAddr,min(oldSize,newSize))
   aligned_free(addr x.data[0])
   result = newAddr
@@ -119,18 +120,25 @@ proc conformable*[T](x,y: SwissArray[T]) =
 template `<-`*[T](x: SwissArray[T]; y: T) = (x := y)
 template `<-`*[S,T](x: S; y: T) = (x = S(y))
 
-template `[]`*[T](x: SwissArray[T]; idx: Natural): lent T =
-  assert idx < x.len
-  x.data[idx]
-template `[]=`*[T](x: var SwissArray[T]; idx: Natural; y: sink T) =
-  assert idx < x.len 
-  x.data[idx] = y
 proc len*[T](x: SwissArray[T]): int {.inline.} = x.len
 proc vlen*[T](x: SwissArray[T]): int {.inline.} = x.vlen
 proc vcap*[T](x: SwissArray[T]): int {.inline.} = x.vcap
+proc index[T](x: SwissArray[T]; idx: Index): int =
+  result = case idx is BackwardsIndex
+    of true: x.len - int(idx)
+    of false: int(idx)
+template `[]`*[T](x: SwissArray[T]; idx: Index): lent T =
+  assert idx < x.len
+  x.data[x.index(idx)]
+template `[]`*[T](x: var SwissArray[T]; idx: Index): lent T =
+  assert idx < x.len
+  x.data[x.index(idx)]
+template `[]=`*[T](x: var SwissArray[T]; idx: Index; y: sink T) =
+  assert idx < x.len 
+  x.data[x.index(idx)] = y
 
 proc `:=`*[T](x: var SwissArray[T]; y: T) = (for idx in 0..<x.len: x[idx] = y)
-template `:=`*[T](x: var T; y: T) = (x = y)
+template `:=`*[T](x: var SwissArray[T]; y: SwissArray[T]) = `=copy`(x,y)
 
 proc `$`*[T](x: SwissArray[T]): string =
   result = "[" & $x[0]

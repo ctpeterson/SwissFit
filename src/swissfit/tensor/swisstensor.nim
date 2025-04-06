@@ -1,8 +1,10 @@
 import tensor
 import tensorarithematic
-import ../array/[storage,arithematic]
+import ../array/[swissarray]
+import ../sequence/[swissseq]
 
 export tensor
 export tensorarithematic
-export storage
-export arithematic
+export swissarray
+export swissseq
+  

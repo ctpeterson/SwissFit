@@ -1,19 +1,16 @@
 ## SIMD approach based on https://github.com/jcosborn/qex/blob/devel/src/simd/
 
-import macros
-
-when defined(SSE):
+when defined(x86):
   import x86
   export x86
-  const (VLENF*,VLEND*) = (4,2)
-when defined(AVX):
-  import x86
-  export x86
-  const (VLENF*,VLEND*) = (8,4)
-when defined(AVX512):
-  import x86
-  export x86
-  const (VLENF*,VLEND*) = (16,8)
+  when defined(SISD):
+    const (VLENF*,VLEND*) = (1,1)
+  when defined(SSE): 
+    const (VLENF*,VLEND*) = (4,2)
+  when defined(AVX): 
+    const (VLENF*,VLEND*) = (8,4)
+  when defined(AVX512): 
+    const (VLENF*,VLEND*) = (16,8)
 
 const codegenDecl = "inline __attribute__((always_inline)) $# $#$#"
 {.passL: "-lm".}
@@ -37,28 +34,29 @@ template newOperationSet(T,F,P,S,O1,O2,S1,S2: untyped) =
   template S2*(y: T; x: T) = O2(y,x)
 
 template define(T,F,N,P,S: untyped) {.dirty.} =
-  proc assign*(y: var T; x: SomeNumber) = (y = `P "_set1_" S`(F(x)))
-  proc assign*(y: var T; x: array[N,SomeNumber]) {.alwaysInline.} =
-    when x[0] is F: y = `P "_loadu_" S`(cast[ptr F](unsafeAddr(x)))
-    else:
-      var t {.noInit.}: array[N,F]
-      for idx in 0..<N: t[idx] = F(x[idx])
-      assign(y,x)
+  when defined(x86):
+    proc assign*(y: var T; x: SomeNumber) = (y = `P "_set1_" S`(F(x)))
+    proc assign*(y: var T; x: array[N,SomeNumber]) {.alwaysInline.} =
+      when x[0] is F: y = `P "_loadu_" S`(cast[ptr F](unsafeAddr(x)))
+      else:
+        var t {.noInit.}: array[N,F]
+        for idx in 0..<N: t[idx] = F(x[idx])
+        assign(y,x)
 
-  proc toSIMD*(x: array[N,F]): T = `P "_loadu_" S`(unsafeAddr x[0])
-  proc toSIMD*(x: ptr UncheckedArray[F]): T = `P "_loadu_" S`(x)
-  proc toSIMD*(x: F): T = `P "_set1_" S`(x)
-  proc load*(x: ptr UncheckedArray[F]; idx: int): T = `P "_loadu_" S`(addr x[idx])
-  proc toArray*(x: T): array[N,F] {.alwaysInline, noInit.} = 
-    `P "_storeu_" S`(addr result[0], x)
-  proc store*(x: ptr UncheckedArray[F]; y: T; idx: int) =
-    `P "_storeu_" S`(addr x[idx], y)
-  proc `[]`*(x: T; i: SomeInteger): F {.alwaysInline, noInit.} = toArray(x)[i]
+    proc toSIMD*(x: array[N,F]): T = `P "_loadu_" S`(unsafeAddr x[0])
+    proc toSIMD*(x: ptr UncheckedArray[F]): T = `P "_loadu_" S`(x)
+    proc toSIMD*(x: F): T = `P "_set1_" S`(x)
+    proc load*(x: ptr UncheckedArray[F]; idx: int): T = `P "_loadu_" S`(addr x[idx])
+    proc toArray*(x: T): array[N,F] {.alwaysInline, noInit.} = 
+      `P "_storeu_" S`(addr result[0], x)
+    proc store*(x: ptr UncheckedArray[F]; y: T; idx: int) =
+      `P "_storeu_" S`(addr x[idx], y)
+    proc `[]`*(x: T; i: SomeInteger): F {.alwaysInline, noInit.} = toArray(x)[i]
 
-  newOperationSet(T,F,P,S,add,iadd,`+`,`+=`)
-  newOperationSet(T,F,P,S,sub,isub,`-`,`-=`)
-  newOperationSet(T,F,P,S,mul,imul,`*`,`*=`)
-  newOperationSet(T,F,P,S,divd,idiv,`/`,`/=`)
+    newOperationSet(T,F,P,S,add,iadd,`+`,`+=`)
+    newOperationSet(T,F,P,S,sub,isub,`-`,`-=`)
+    newOperationSet(T,F,P,S,mul,imul,`*`,`*=`)
+    newOperationSet(T,F,P,S,divd,idiv,`/`,`/=`)
 
   proc `$`*(x: T): string =
     result = "[" & $x[0]
@@ -70,12 +68,16 @@ proc vlen*[T](): int =
     of true: VLENF
     of false: VLEND
 
-when defined(SSE):
-  define(m128s,float32,VLENF,mm128,ps)
-  define(m128d,float64,VLEND,mm128,pd)
-when defined(AVX):
-  define(m256s,float32,VLENF,mm256,ps)
-  define(m256d,float64,VLEND,mm256,pd)
-when defined(AVX512):
-  define(m512s,float32,VLENF,mm512,ps)
-  define(m512d,float64,VLEND,mm512,pd)
+when defined(x86):
+  when defined(SISD):
+    define(m32s,float32,VLENF,mm32,ps)
+    define(m64d,float64,VLEND,mm64,pd)
+  when defined(SSE):
+    define(m128s,float32,VLENF,mm128,ps)
+    define(m128d,float64,VLEND,mm128,pd)
+  when defined(AVX):
+    define(m256s,float32,VLENF,mm256,ps)
+    define(m256d,float64,VLEND,mm256,pd)
+  when defined(AVX512):
+    define(m512s,float32,VLENF,mm512,ps)
+    define(m512d,float64,VLEND,mm512,pd)

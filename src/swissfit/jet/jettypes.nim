@@ -31,12 +31,12 @@ proc prolong*[T](
       result.back = proc(x: Swiss1Jet[T]) = discard
       result.stack = newSeq[Swiss1Jet[T]]()
 
-proc prolong*[V:static[int],T](
-    x: SwissTensor[V,T]; 
+proc prolong*[T](
+    x: SwissTensor[T]; 
     pushforward: bool = true; 
     derived: bool = false
-  ): Swiss1Jet[SwissTensor[V,T]] =
-  result = Swiss1Jet[SwissTensor[V,T]](
+  ): Swiss1Jet[SwissTensor[T]] =
+  result = Swiss1Jet[SwissTensor[T]](
     x: x.shape.newTensor(typeof(T)),
     dx: x.shape.newTensor(typeof(T)),
     pushforward: pushforward, 
@@ -47,19 +47,19 @@ proc prolong*[V:static[int],T](
     of true: (if not derived: result.dx <- 1.0)
     of false:
       if not derived: result.dx <- 0.0
-      result.back = proc(x: Swiss1Jet[SwissTensor[V,T]]) = discard
-      result.stack = newSeq[Swiss1Jet[SwissTensor[V,T]]]()
+      result.back = proc(x: Swiss1Jet[SwissTensor[T]]) = discard
+      result.stack = newSeq[Swiss1Jet[SwissTensor[T]]]()
 
 proc vectorize*[V:static[int],T](
     s: array[V,int]; 
     x: Swiss1Jet[T]
-  ): Swiss1Jet[SwissTensor[V,T]] =
+  ): Swiss1Jet[SwissTensor[T]] =
   assert(not x.derived)
-  result = Swiss1Jet[SwissTensor[V,T]](pushforward: x.pushforward, derived: false)
+  result = Swiss1Jet[SwissTensor[T]](pushforward: x.pushforward, derived: false)
   (result.x,result.dx) = (s.newTensor(x.x), s.newTensor(x.dx))
   if not result.pushforward: 
-    result.back = proc(x: Swiss1Jet[SwissTensor[V,T]]) = discard
-    result.stack = newSeq[Swiss1Jet[SwissTensor[V,T]]]()
+    result.back = proc(x: Swiss1Jet[SwissTensor[T]]) = discard
+    result.stack = newSeq[Swiss1Jet[SwissTensor[T]]]()
 
 template sweep[T](graph: var seq[Swiss1Jet[T]]; work: untyped) =
   var rank {.inject.} = 0
