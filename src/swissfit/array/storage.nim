@@ -20,12 +20,12 @@ type
   Index = Natural or BackwardsIndex
   HeapAlloc = object
   SwissArray*[T] = object
-    len,vlen,cap,vcap: int
+    len*,vlen,cap*,vcap*: int
     data*: ptr UncheckedArray[T]
 
 # Allocate memory to SIMD-aligned vector
 proc aligned_alloc(align,size: int): pointer {.tags: [HeapAlloc], importc, stdlib.}
-proc aligned_alloc[T](size: int): pointer =
+proc aligned_alloc*[T](size: int): pointer =
   assert((T is float32) or (T is float64))
   if T is float32: result = aligned_alloc(VLENF,size)
   if T is float64: result = aligned_alloc(VLEND,size)

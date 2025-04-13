@@ -1,75 +1,91 @@
-# nim c -d:x86 -d:AVX --mm:orc --noMain --app:lib --out:backend.so --threads:on backend
+# nim c -d:x86 -d:AVX512 -d:release --passC:-Ofast --threads:on --app:lib --out:backend.so backend
 import nimpy
-import swisstensor
+import ../simd/[swisssimd]
+import ../sequence/[swissseq]
+import ../array/[swissarray]
 
-# Python-facing tensor type
-type 
-  AnyTensor[T] = concept x
-    x.tensor is SwissTensor[T]
-  SwissTensor32* = ref object of PyNimObjectExperimental
-    tensor*: SwissTensor[float32]
-  SwissTensor64* = ref object of PyNimObjectExperimental
-    tensor*: SwissTensor[float64]
+template newPrimitiveOperation(O,B,F: untyped) =
+  proc `O F`(y: `"SwissTensor" F`; xa,xb: `"SwissTensor" F`) =
+    assert(xa.shape == xb.shape)
+    for idx in countup(0,xa.vcap-1,xa.vlen):
+      y.storage.store(O(load(xa.storage,idx),load(xb.storage,idx)),idx)
+    for idx in countup(xa.vcap,xa.len-1,1):
+      y.storage[idx] = B(xa.storage[idx],xb.storage[idx])
 
-proc newTensor32*(shape: seq[int]): SwissTensor32 {.exportpy.} =
-  result = SwissTensor32(tensor: newTensor[float32](newSwissSeq(shape)))
-proc newTensor64*(shape: seq[int]): SwissTensor64 {.exportpy.} =
-  result = SwissTensor64(tensor: newTensor[float64](newSwissSeq(shape)))
+template define(F: untyped) {.dirty.} =
+  type
+    `"SwissTensor" F`* = ref object of PyNimObjectExperimental
+      offset,len*,vlen*,cap*,vcap*: int
+      strides,shape: SwissSeq[int]
+      storage*: ptr UncheckedArray[`"float" F`]
+  
+  proc `"newSwissTensor" F`(shape: SwissSeq[int]): `"SwissTensor" F` =
+    let (alen,slen,vlen) = (shape.product,shape.len,vlen[`"float" F`]())
+    var strides = 1
+    result = `"SwissTensor" F`(
+      offset: 0,
+      len: alen,
+      cap: alen,
+      vlen: vlen,
+      vcap: (alen div vlen)*vlen,
+      shape: shape,
+      strides: newSwissSeq[int](slen)
+    )
+    for idx in countdown(slen-1,0):
+      result.strides[idx] = strides
+      strides *= result.shape[idx]
+    result.storage = cast[ptr UncheckedArray[`"float" F`]](
+      aligned_alloc[`"float" F`](alen*sizeof(`"float" F`))
+    )
+  
+  proc `"linearize" F`(x: `"SwissTensor" F`): seq[`"float" F`] =
+    result = newSeq[`"float" F`](x.len)
+    for idx in 0..<x.len: result[idx] = x.storage[idx]
 
-proc element*(x: SwissTensor32, index: seq[int]): float32 {.exportpy.} = 
-  x.tensor.storage[x.tensor.index(newSwissSeq(index))]
-proc element*(x: SwissTensor64, index: seq[int]): float64 {.exportpy.} = 
-  x.tensor.storage[x.tensor.index(newSwissSeq(index))]
+  proc `"index" F`(x: `"SwissTensor" F`; coord: SwissSeq[int]): int =
+    assert(x.shape.len == coord.len)
+    result = x.offset
+    for idx in 0..<coord.len: result += x.strides[idx]*coord[idx]
 
-proc getLinear*(x: SwissTensor32): seq[float32] {.exportpy.} =
-  let len = x.tensor.storage.len
-  result = newSeq[float32](len)
-  for idx in 0..<len: result[idx] = x.tensor.storage[idx]
-proc getLinear*(x: SwissTensor64): seq[float64] {.exportpy.} =
-  let len = x.tensor.storage.len
-  result = newSeq[float64](len)
-  for idx in 0..<len: result[idx] = x.tensor.storage[idx]
+  newPrimitiveOperation(add,`+`,F)
+  newPrimitiveOperation(sub,`-`,F)
 
-proc setElement*(x: SwissTensor32, index: seq[int], value: float64) {.exportpy.} = 
-  x.tensor.storage[x.tensor.index(newSwissSeq(index))] = value
-proc setElement*(x: SwissTensor64, index: seq[int], value: float64) {.exportpy.} = 
-  x.tensor.storage[x.tensor.index(newSwissSeq(index))] = value
+  proc `"add" F`(xa,xb: `"SwissTensor" F`): `"SwissTensor" F` =
+    assert(xa.shape == xb.shape)
+    result = `"newSwissTensor" F`(xa.shape)
+    `"add" F`(result,xa,xb)
 
-proc set*(x: SwissTensor32; y: SwissTensor32) {.exportpy.} = (x.tensor := y.tensor)
-proc set*(x: SwissTensor64; y: SwissTensor64) {.exportpy.} = (x.tensor := y.tensor)
+  proc `"sub" F`(xa,xb: `"SwissTensor" F`): `"SwissTensor" F` =
+    assert(xa.shape == xb.shape)
+    result = `"newSwissTensor" F`(xa.shape)
+    `"sub" F`(result,xa,xb)
 
-proc add*(x,y: SwissTensor32): SwissTensor32 {.exportpy.} = 
-  var r {.noinit.} = x.tensor + y.tensor
-  result = SwissTensor32(tensor: newTensor[float32](x.tensor.shape))
-  result.tensor := r
-proc add*(x,y: SwissTensor64): SwissTensor64 {.exportpy.} =
-  var r {.noinit.} = x.tensor + y.tensor
-  result = SwissTensor64(tensor: newTensor[float64](x.tensor.shape))
-  result.tensor := r
+define(32)
+define(64)
 
-proc sub*(x,y: SwissTensor32): SwissTensor32 {.exportpy.} = 
-  var r {.noinit.} = x.tensor - y.tensor
-  result = SwissTensor32(tensor: newTensor[float32](x.tensor.shape))
-  result.tensor := r
-proc sub*(x,y: SwissTensor64): SwissTensor64 {.exportpy.} =
-  var r {.noinit.} = x.tensor - y.tensor
-  result = SwissTensor64(tensor: newTensor[float64](x.tensor.shape))
-  result.tensor := r
+proc linearizePy*(x: SwissTensor32): seq[float32] {.exportpy.} = linearize32(x)
+proc linearizePy*(x: SwissTensor64): seq[float64] {.exportpy.} = linearize64(x)
 
-proc mul*(x,y: SwissTensor32): SwissTensor32 {.exportpy.} = 
-  var r {.noinit.} = x.tensor*y.tensor
-  result = SwissTensor32(tensor: newTensor[float32](x.tensor.shape))
-  result.tensor := r
-proc mul*(x,y: SwissTensor64): SwissTensor64 {.exportpy.} =
-  var r {.noinit.} = x.tensor*y.tensor
-  result = SwissTensor64(tensor: newTensor[float64](x.tensor.shape))
-  result.tensor := r
+proc getPy*(x: SwissTensor32; coord: seq[int]): float32 {.exportpy.} = 
+  x.storage[x.index32(newSwissSeq(coord))]
+proc getPy*(x: SwissTensor64; coord: seq[int]): float64 {.exportpy.} = 
+  x.storage[x.index64(newSwissSeq(coord))]
 
-proc divd*(x,y: SwissTensor32): SwissTensor32 {.exportpy.} = 
-  var r {.noinit.} = x.tensor/y.tensor
-  result = SwissTensor32(tensor: newTensor[float32](x.tensor.shape))
-  result.tensor := r
-proc divd*(x,y: SwissTensor64): SwissTensor64 {.exportpy.} =
-  var r {.noinit.} = x.tensor/y.tensor
-  result = SwissTensor64(tensor: newTensor[float64](x.tensor.shape))
-  result.tensor := r
+proc setPy*(x: SwissTensor32; coord: seq[int]; y: float32) {.exportpy.} = 
+  `=copy`(x.storage[x.index32(newSwissSeq(coord))],y)
+proc setPy*(x: SwissTensor64; coord: seq[int]; y: float64) {.exportpy.} = 
+  `=copy`(x.storage[x.index64(newSwissSeq(coord))],y)
+
+proc newSwissTensorPy32(shape: seq[int]): SwissTensor32 {.exportpy.} =
+  newSwissTensor32(newSwissSeq(shape))
+proc newSwissTensorPy64(shape: seq[int]): SwissTensor64 {.exportpy.} =
+  newSwissTensor64(newSwissSeq(shape))
+
+proc addPy(x,y: SwissTensor32): SwissTensor32 {.exportpy.} = add32(x,y)
+proc addPy(x,y: SwissTensor64): SwissTensor64 {.exportpy.} = add64(x,y)
+
+proc subPy(x,y: SwissTensor32): SwissTensor32 {.exportpy.} = sub32(x,y)
+proc subPy(x,y: SwissTensor64): SwissTensor64 {.exportpy.} = sub64(x,y)
+
+proc lenPy(x: SwissTensor32): int {.exportpy.} = x.len
+proc lenPy(x: SwissTensor64): int {.exportpy.} = x.len

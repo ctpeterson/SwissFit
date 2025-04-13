@@ -58,7 +58,7 @@ proc append*[T](x: var SwissSeq[T]; y: T) {.inline.} =
   inc x.len
 proc product*[T](x: SwissSeq[T]): T =
   result = 1
-  for xv in x.items: result *= xv
+  for idx in 0..<x.len: result *= x[idx]
 proc `@`*[T](x: SwissSeq[T]): seq[T] =
   result = newSeq[T](x.len)
   for idx in 0..<x.len: result[idx] = x[idx]
